@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: money-transfer-mysql
+    environment:
+      MYSQL_DATABASE: money_transfer
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_USER: moneyuser
+      MYSQL_PASSWORD: moneypass
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: money-transfer-app
+    depends_on:
+      - mysql
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/money_transfer?useSSL=false&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: moneyuser
+      SPRING_DATASOURCE_PASSWORD: moneypass
+    volumes:
+      - ./logs:/app/logs
+
+volumes:
+  mysql_data:
