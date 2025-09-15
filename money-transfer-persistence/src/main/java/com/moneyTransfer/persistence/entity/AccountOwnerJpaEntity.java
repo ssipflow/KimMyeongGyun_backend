@@ -1,7 +1,10 @@
 package com.moneyTransfer.persistence.entity;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.BatchSize;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "account_owners")
@@ -22,6 +25,11 @@ public class AccountOwnerJpaEntity {
     
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
+    
+    // ToMany 관계 - LAZY + BatchSize
+    @OneToMany(mappedBy = "owner", fetch = FetchType.LAZY)
+    @BatchSize(size = 100)
+    private List<AccountJpaEntity> accounts = new ArrayList<>();
     
     // JPA용 기본 생성자
     protected AccountOwnerJpaEntity() {}
@@ -49,4 +57,7 @@ public class AccountOwnerJpaEntity {
     
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    
+    public List<AccountJpaEntity> getAccounts() { return accounts; }
+    public void setAccounts(List<AccountJpaEntity> accounts) { this.accounts = accounts; }
 }

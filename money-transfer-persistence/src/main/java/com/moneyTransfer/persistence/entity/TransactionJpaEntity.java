@@ -5,7 +5,11 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "transactions")
+@Table(name = "transactions",
+       indexes = {
+           @Index(name = "idx_transaction_from_date", columnList = "account_from_id, created_at DESC"),
+           @Index(name = "idx_transaction_to_date", columnList = "account_to_id, created_at DESC")
+       })
 public class TransactionJpaEntity {
     
     @Id
@@ -15,11 +19,14 @@ public class TransactionJpaEntity {
     @Column(name = "type", nullable = false)
     private Integer type; // DEPOSIT: 100, WITHDRAW: 200, TRANSFER_SEND: 300, TRANSFER_RECEIVE: 400
     
-    @Column(name = "account_from_id")
-    private Long accountFromId;
+    // ToOne 관계 - LAZY 로딩, Fetch Join으로 조회
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "account_from_id")
+    private AccountJpaEntity accountFrom;
     
-    @Column(name = "account_to_id")
-    private Long accountToId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "account_to_id")
+    private AccountJpaEntity accountTo;
     
     @Column(name = "amount", nullable = false, precision = 15, scale = 2)
     private BigDecimal amount;
@@ -43,11 +50,11 @@ public class TransactionJpaEntity {
     protected TransactionJpaEntity() {}
     
     // 생성자
-    public TransactionJpaEntity(Integer type, Long accountFromId, Long accountToId, 
+    public TransactionJpaEntity(Integer type, AccountJpaEntity accountFrom, AccountJpaEntity accountTo, 
                                BigDecimal amount, BigDecimal fee, String description) {
         this.type = type;
-        this.accountFromId = accountFromId;
-        this.accountToId = accountToId;
+        this.accountFrom = accountFrom;
+        this.accountTo = accountTo;
         this.amount = amount;
         this.fee = fee != null ? fee : BigDecimal.ZERO;
         this.description = description;
@@ -68,11 +75,11 @@ public class TransactionJpaEntity {
     public Integer getType() { return type; }
     public void setType(Integer type) { this.type = type; }
     
-    public Long getAccountFromId() { return accountFromId; }
-    public void setAccountFromId(Long accountFromId) { this.accountFromId = accountFromId; }
+    public AccountJpaEntity getAccountFrom() { return accountFrom; }
+    public void setAccountFrom(AccountJpaEntity accountFrom) { this.accountFrom = accountFrom; }
     
-    public Long getAccountToId() { return accountToId; }
-    public void setAccountToId(Long accountToId) { this.accountToId = accountToId; }
+    public AccountJpaEntity getAccountTo() { return accountTo; }
+    public void setAccountTo(AccountJpaEntity accountTo) { this.accountTo = accountTo; }
     
     public BigDecimal getAmount() { return amount; }
     public void setAmount(BigDecimal amount) { this.amount = amount; }

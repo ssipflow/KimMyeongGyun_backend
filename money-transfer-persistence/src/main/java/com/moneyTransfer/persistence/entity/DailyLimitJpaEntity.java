@@ -6,15 +6,18 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "daily_limits")
+@Table(name = "daily_limits",
+       uniqueConstraints = @UniqueConstraint(columnNames = {"account_id", "limit_date"}))
 public class DailyLimitJpaEntity {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
-    @Column(name = "account_id", nullable = false)
-    private Long accountId;
+    // ToOne 관계 - LAZY 로딩, Fetch Join으로 조회
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "account_id", nullable = false)
+    private AccountJpaEntity account;
     
     @Column(name = "limit_date", nullable = false)
     private LocalDate limitDate;
@@ -38,8 +41,8 @@ public class DailyLimitJpaEntity {
     protected DailyLimitJpaEntity() {}
     
     // 생성자
-    public DailyLimitJpaEntity(Long accountId, LocalDate limitDate) {
-        this.accountId = accountId;
+    public DailyLimitJpaEntity(AccountJpaEntity account, LocalDate limitDate) {
+        this.account = account;
         this.limitDate = limitDate;
         this.withdrawUsed = BigDecimal.ZERO;
         this.transferUsed = BigDecimal.ZERO;
@@ -57,8 +60,8 @@ public class DailyLimitJpaEntity {
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     
-    public Long getAccountId() { return accountId; }
-    public void setAccountId(Long accountId) { this.accountId = accountId; }
+    public AccountJpaEntity getAccount() { return account; }
+    public void setAccount(AccountJpaEntity account) { this.account = account; }
     
     public LocalDate getLimitDate() { return limitDate; }
     public void setLimitDate(LocalDate limitDate) { this.limitDate = limitDate; }
