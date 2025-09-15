@@ -7,8 +7,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "account_owners")
-public class AccountOwnerJpaEntity {
+@Table(name = "users")
+public class UserJpaEntity {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -27,15 +27,15 @@ public class AccountOwnerJpaEntity {
     private LocalDateTime createdAt;
     
     // ToMany 관계 - LAZY + BatchSize
-    @OneToMany(mappedBy = "owner", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
     @BatchSize(size = 100)
     private List<AccountJpaEntity> accounts = new ArrayList<>();
     
     // JPA용 기본 생성자
-    protected AccountOwnerJpaEntity() {}
+    protected UserJpaEntity() {}
     
     // 생성자
-    public AccountOwnerJpaEntity(String name, String idCardNo, String idCardNoNorm) {
+    public UserJpaEntity(String name, String idCardNo, String idCardNoNorm) {
         this.name = name;
         this.idCardNo = idCardNo;
         this.idCardNoNorm = idCardNoNorm;

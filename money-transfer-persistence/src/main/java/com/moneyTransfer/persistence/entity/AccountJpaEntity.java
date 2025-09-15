@@ -6,9 +6,9 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "accounts",
-       uniqueConstraints = @UniqueConstraint(columnNames = {"owner_id", "bank_code", "account_no_norm"}),
+       uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "bank_code", "account_no_norm"}),
        indexes = {
-           @Index(name = "idx_account_owner", columnList = "owner_id")
+           @Index(name = "idx_account_user", columnList = "user_id")
        })
 public class AccountJpaEntity {
     
@@ -18,8 +18,8 @@ public class AccountJpaEntity {
     
     // ToOne 관계 - LAZY 로딩, Fetch Join으로 조회
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "owner_id", nullable = false)
-    private AccountOwnerJpaEntity owner;
+    @JoinColumn(name = "user_id", nullable = false)
+    private UserJpaEntity user;
     
     @Column(name = "bank_code", nullable = false)
     private String bankCode;
@@ -52,8 +52,8 @@ public class AccountJpaEntity {
     protected AccountJpaEntity() {}
     
     // 생성자
-    public AccountJpaEntity(AccountOwnerJpaEntity owner, String bankCode, String accountNo, String accountNoNorm) {
-        this.owner = owner;
+    public AccountJpaEntity(UserJpaEntity user, String bankCode, String accountNo, String accountNoNorm) {
+        this.user = user;
         this.bankCode = bankCode;
         this.accountNo = accountNo;
         this.accountNoNorm = accountNoNorm;
@@ -73,8 +73,8 @@ public class AccountJpaEntity {
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     
-    public AccountOwnerJpaEntity getOwner() { return owner; }
-    public void setOwner(AccountOwnerJpaEntity owner) { this.owner = owner; }
+    public UserJpaEntity getUser() { return user; }
+    public void setUser(UserJpaEntity user) { this.user = user; }
     
     public String getBankCode() { return bankCode; }
     public void setBankCode(String bankCode) { this.bankCode = bankCode; }
