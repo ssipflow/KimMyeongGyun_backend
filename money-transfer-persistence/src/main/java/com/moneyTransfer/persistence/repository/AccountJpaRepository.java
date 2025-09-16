@@ -13,14 +13,14 @@ import java.util.Optional;
 public interface AccountJpaRepository extends JpaRepository<AccountJpaEntity, Long> {
     
     @Query("SELECT a FROM AccountJpaEntity a JOIN FETCH a.user WHERE a.id = :id")
-    Optional<AccountJpaEntity> findByIdWithOwner(@Param("id") Long id);
+    Optional<AccountJpaEntity> findByIdWithUser(@Param("id") Long id);
     
-    @Query("SELECT a FROM AccountJpaEntity a JOIN FETCH a.user WHERE a.user.id = :ownerId")
-    List<AccountJpaEntity> findByOwnerIdWithOwner(@Param("ownerId") Long ownerId);
+    @Query("SELECT a FROM AccountJpaEntity a JOIN FETCH a.user WHERE a.user.id = :userId")
+    List<AccountJpaEntity> findByUserIdWithUser(@Param("userId") Long userId);
     
-    Optional<AccountJpaEntity> findByUserIdAndBankCodeAndAccountNoNorm(Long ownerId, String bankCode, String accountNoNorm);
-    
-    boolean existsByUserIdAndBankCodeAndAccountNoNorm(Long ownerId, String bankCode, String accountNoNorm);
+    Optional<AccountJpaEntity> findByBankCodeAndAccountNoNorm(String bankCode, String accountNoNorm);
+
+    boolean existsByBankCodeAndAccountNoNorm(String bankCode, String accountNoNorm);
     
     @Query("SELECT a FROM AccountJpaEntity a WHERE a.status = :status")
     List<AccountJpaEntity> findByStatus(@Param("status") Integer status);

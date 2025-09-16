@@ -12,4 +12,6 @@ public interface UserJpaRepository extends JpaRepository<UserJpaEntity, Long> {
     Optional<UserJpaEntity> findByIdCardNoNorm(String idCardNoNorm);
     
     boolean existsByIdCardNoNorm(String idCardNoNorm);
+
+    boolean existsByEmail(String email);
 }

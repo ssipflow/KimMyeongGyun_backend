@@ -33,7 +33,7 @@ class AccountJpaRepositoryTest {
 
     @BeforeEach
     void setUp() {
-        testUser = new UserJpaEntity("홍길동", "1234567890123", "1234567890123");
+        testUser = new UserJpaEntity("홍길동", "test@domain.com", "1234567890123", "1234567890123");
         testUser = userJpaRepository.save(testUser);
     }
 
@@ -68,7 +68,7 @@ class AccountJpaRepositoryTest {
         AccountJpaEntity savedAccount = accountRepository.save(account);
         
         // when
-        Optional<AccountJpaEntity> found = accountRepository.findByIdWithOwner(savedAccount.getId());
+        Optional<AccountJpaEntity> found = accountRepository.findByIdWithUser(savedAccount.getId());
 
         // 로드한 엔티티 정보 로깅
         found.ifPresent(o -> log.info("Found Account: id={}, bankCode={}, accountNo={}, accountNoNorm={}, balance={}, status={}, createdAt={}, ownerName={}",
@@ -93,7 +93,7 @@ class AccountJpaRepositoryTest {
         accountRepository.save(account2);
         
         // when
-        List<AccountJpaEntity> accounts = accountRepository.findByOwnerIdWithOwner(testUser.getId());
+        List<AccountJpaEntity> accounts = accountRepository.findByUserIdWithUser(testUser.getId());
 
         // 로드한 엔티티 정보 로깅
         accounts.forEach(o -> log.info("Found Account: id={}, bankCode={}, accountNo={}, accountNoNorm={}, balance={}, status={}, createdAt={}, ownerName={}",
@@ -118,8 +118,8 @@ class AccountJpaRepositoryTest {
         accountRepository.save(account);
         
         // when
-        Optional<AccountJpaEntity> found = accountRepository.findByUserIdAndBankCodeAndAccountNoNorm(
-                testUser.getId(), "001", "123456789");
+        Optional<AccountJpaEntity> found = accountRepository.findByBankCodeAndAccountNoNorm(
+                "001", "123456789");
 
         // 로드한 엔티티 정보 로깅
         found.ifPresent(o -> log.info("Found Account: id={}, bankCode={}, accountNo={}, accountNoNorm={}, balance={}, status={}, createdAt={}, ownerName={}",
@@ -142,10 +142,10 @@ class AccountJpaRepositoryTest {
         accountRepository.save(account);
         
         // when & then
-        assertThat(accountRepository.existsByUserIdAndBankCodeAndAccountNoNorm(
-                testUser.getId(), "001", "123456789")).isTrue();
-        assertThat(accountRepository.existsByUserIdAndBankCodeAndAccountNoNorm(
-                testUser.getId(), "001", "999999999")).isFalse();
+        assertThat(accountRepository.existsByBankCodeAndAccountNoNorm(
+                "001", "123456789")).isTrue();
+        assertThat(accountRepository.existsByBankCodeAndAccountNoNorm(
+                "001", "999999999")).isFalse();
     }
 
     @Test

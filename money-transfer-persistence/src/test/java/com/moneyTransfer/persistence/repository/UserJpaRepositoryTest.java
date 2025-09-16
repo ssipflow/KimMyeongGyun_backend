@@ -35,14 +35,14 @@ class UserJpaRepositoryTest {
     @DisplayName("계좌소유자를 저장하고 조회할 수 있다")
     void saveAndFindAccountOwner() {
         // given
-        UserJpaEntity user = new UserJpaEntity("홍길동", "1234567890123", "1234567890123");
+        UserJpaEntity user = new UserJpaEntity("홍길동", "test@domain.com", "1234567890123", "1234567890123");
         
         // when
         UserJpaEntity savedUser = userRepository.save(user);
         
         // 저장된 엔티티 정보 로깅
-        log.info("Saved User: id={}, name={}, idCardNo={}, idCardNoNorm={}, createdAt={}",
-                savedUser.getId(), savedUser.getName(), savedUser.getIdCardNo(),
+        log.info("Saved User: id={}, name={}, email={}, idCardNo={}, idCardNoNorm={}, createdAt={}",
+                savedUser.getId(), savedUser.getName(), savedUser.getEmail(), savedUser.getIdCardNo(),
                 savedUser.getIdCardNoNorm(), savedUser.getCreatedAt());
         
         // then
@@ -55,15 +55,15 @@ class UserJpaRepositoryTest {
     @DisplayName("주민번호 정규화로 계좌소유자를 조회할 수 있다")
     void findByIdCardNoNorm() {
         // given
-        UserJpaEntity user = new UserJpaEntity("홍길동", "123-456-7890123", "1234567890123");
+        UserJpaEntity user = new UserJpaEntity("홍길동", "test@doamin.com", "123-456-7890123", "1234567890123");
         userRepository.save(user);
         
         // when
         Optional<UserJpaEntity> found = userRepository.findByIdCardNoNorm("1234567890123");
 
         // 로드한 엔티티 정보 로깅
-        found.ifPresent(o -> log.info("Found User: id={}, name={}, idCardNo={}, idCardNoNorm={}, createdAt={}",
-                o.getId(), o.getName(), o.getIdCardNo(),
+        found.ifPresent(o -> log.info("Found User: id={}, name={}, email={}, idCardNo={}, idCardNoNorm={}, createdAt={}",
+                o.getId(), o.getName(), o.getEmail(), o.getIdCardNo(),
                 o.getIdCardNoNorm(), o.getCreatedAt()));
         
         // then
@@ -76,8 +76,8 @@ class UserJpaRepositoryTest {
     @DisplayName("BatchSize를 통한 계좌 Lazy Loading 테스트")
     void lazyLoadingWithBatchSize() {
         // given - 여러 User와 Account를 생성해서 BatchSize 효과 확인
-        UserJpaEntity user1 = new UserJpaEntity("홍길동", "1111111111111", "1111111111111");
-        UserJpaEntity user2 = new UserJpaEntity("김철수", "2222222222222", "2222222222222");
+        UserJpaEntity user1 = new UserJpaEntity("홍길동", "test1@domain.com", "1111111111111", "1111111111111");
+        UserJpaEntity user2 = new UserJpaEntity("김철수", "test2@domain.com", "2222222222222", "2222222222222");
         UserJpaEntity savedUser1 = userRepository.save(user1);
         UserJpaEntity savedUser2 = userRepository.save(user2);
         
@@ -120,11 +120,23 @@ class UserJpaRepositoryTest {
     @DisplayName("주민번호 정규화로 계좌소유자 존재 여부를 확인할 수 있다")
     void existsByIdCardNoNorm() {
         // given
-        UserJpaEntity user = new UserJpaEntity("홍길동", "1234567890123", "1234567890123");
+        UserJpaEntity user = new UserJpaEntity("홍길동", "test@domain.com", "1234567890123", "1234567890123");
         userRepository.save(user);
         
         // when & then
         assertThat(userRepository.existsByIdCardNoNorm("1234567890123")).isTrue();
         assertThat(userRepository.existsByIdCardNoNorm("9999999999999")).isFalse();
+    }
+
+    @Test
+    @DisplayName("Email로 계좌소유자 존재 여부를 확인할 수 있다")
+    void existsByEmail() {
+        // given
+        UserJpaEntity user = new UserJpaEntity("홍길동", "test@domain.com", "1234567890123", "1234567890123");
+        userRepository.save(user);
+
+        // when & then
+        assertThat(userRepository.existsByEmail("test@domain.com")).isTrue();
+        assertThat(userRepository.existsByEmail("test@false.com")).isFalse();
     }
 }

@@ -13,6 +13,9 @@ public class UserJpaEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(name = "email", nullable = false, unique = true)
+    private String email;
     
     @Column(name = "name", nullable = false)
     private String name;
@@ -35,8 +38,9 @@ public class UserJpaEntity {
     protected UserJpaEntity() {}
     
     // 생성자
-    public UserJpaEntity(String name, String idCardNo, String idCardNoNorm) {
+    public UserJpaEntity(String name, String email, String idCardNo, String idCardNoNorm) {
         this.name = name;
+        this.email = email;
         this.idCardNo = idCardNo;
         this.idCardNoNorm = idCardNoNorm;
         this.createdAt = LocalDateTime.now();
@@ -48,6 +52,9 @@ public class UserJpaEntity {
     
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
+
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
     
     public String getIdCardNo() { return idCardNo; }
     public void setIdCardNo(String idCardNo) { this.idCardNo = idCardNo; }

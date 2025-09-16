@@ -20,3 +20,4 @@ logging:
     root: WARN
     com.moneyTransfer: INFO
     org.hibernate.SQL: DEBUG
+    org.hibernate.orm.jdbc.bind: TRACE
