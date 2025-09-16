@@ -1,7 +1,10 @@
 package com.moneyTransfer.application.account;
 
 import com.moneyTransfer.domain.account.Account;
-import com.moneyTransfer.domain.account.AccountRepository;
+import com.moneyTransfer.domain.account.AccountPort;
+import com.moneyTransfer.domain.user.User;
+import com.moneyTransfer.domain.user.UserPort;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -9,35 +12,54 @@ import java.util.stream.Collectors;
 
 public class AccountApplicationService {
 
-    private final AccountRepository accountRepository;
+    private final AccountPort accountPort;
+    private final UserPort userPort;
 
-    public AccountApplicationService(AccountRepository accountRepository) {
-        this.accountRepository = accountRepository;
+    public AccountApplicationService(AccountPort accountRepository, UserPort userRepository) {
+        this.accountPort = accountRepository;
+        this.userPort = userRepository;
     }
 
+    @Transactional
     public AccountResponse createAccount(CreateAccountRequest request) {
-        request.validateRequest();
+        // 1. User 도메인 객체 생성 (도메인에서 검증)
+        User user = User.create(request.getUserName(), request.getEmail(), request.getIdCardNo());
 
-        String accountNoNorm = normalizeAccountNo(request.getAccountNo());
+        // 2. 비즈니스 규칙 검증: 중복 체크
+        validateUserUniqueness(user);
 
-        // 계좌번호 중복 확인
-        if (accountRepository.existsByBankCodeAndAccountNoNorm(request.getBankCode(), accountNoNorm)) {
-            throw new IllegalArgumentException("이미 존재하는 계좌번호입니다");
-        }
+        // 3. User 저장
+        User savedUser = userPort.save(user);
 
-        Account account = new Account(
-            request.getUserId(),
-            request.getBankCode(),
-            request.getAccountNo(),
-            accountNoNorm
-        );
+        // 4. Account 도메인 객체 생성 (도메인에서 검증)
+        Account account = Account.create(savedUser.getId(), request.getBankCode(), request.getAccountNo());
 
-        Account savedAccount = accountRepository.save(account);
+        // 5. 비즈니스 규칙 검증: 계좌번호 중복 체크
+        validateAccountUniqueness(account);
+
+        // 6. Account 저장
+        Account savedAccount = accountPort.save(account);
+
         return new AccountResponse(savedAccount);
     }
 
+    private void validateUserUniqueness(User user) {
+        if (userPort.existsByEmail(user.getEmail())) {
+            throw new IllegalArgumentException("이미 존재하는 이메일입니다");
+        }
+        if (userPort.existsByIdCardNoNorm(user.getIdCardNoNorm())) {
+            throw new IllegalArgumentException("이미 존재하는 주민번호입니다");
+        }
+    }
+
+    private void validateAccountUniqueness(Account account) {
+        if (accountPort.existsByBankCodeAndAccountNoNorm(account.getBankCode(), account.getAccountNoNorm())) {
+            throw new IllegalArgumentException("이미 존재하는 계좌번호입니다");
+        }
+    }
+
     public void deleteAccount(Long accountId) {
-        Account account = accountRepository.findById(accountId)
+        Account account = accountPort.findById(accountId)
             .orElseThrow(() -> new IllegalArgumentException("계좌를 찾을 수 없습니다"));
 
         if (!account.isActive()) {
@@ -50,32 +72,25 @@ public class AccountApplicationService {
         }
 
         account.deactivate();
-        accountRepository.save(account);
+        accountPort.save(account);
     }
 
     public Optional<AccountResponse> getAccount(Long accountId) {
-        return accountRepository.findById(accountId)
+        return accountPort.findById(accountId)
             .map(AccountResponse::new);
     }
 
     public List<AccountResponse> getAccountsByUserId(Long userId) {
-        return accountRepository.findByUserId(userId)
+        return accountPort.findByUserId(userId)
             .stream()
             .map(AccountResponse::new)
             .collect(Collectors.toList());
     }
 
     public Optional<AccountResponse> getAccountByBankCodeAndAccountNo(String bankCode, String accountNo) {
-        String accountNoNorm = normalizeAccountNo(accountNo);
-        return accountRepository.findByBankCodeAndAccountNoNorm(bankCode, accountNoNorm)
+        // Account 도메인의 정규화 로직 사용
+        String accountNoNorm = accountNo.replaceAll("[^0-9]", "");
+        return accountPort.findByBankCodeAndAccountNoNorm(bankCode, accountNoNorm)
             .map(AccountResponse::new);
-    }
-
-    private String normalizeAccountNo(String accountNo) {
-        if (accountNo == null) {
-            return null;
-        }
-        // 계좌번호에서 특수문자 제거하여 정규화
-        return accountNo.replaceAll("[^0-9]", "");
     }
 }

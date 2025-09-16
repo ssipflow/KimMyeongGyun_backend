@@ -1,8 +1,15 @@
 package com.moneyTransfer.domain.account;
 
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+@Setter
+@Getter
+@NoArgsConstructor
 public class Account {
     private Long id;
     private Long userId;
@@ -15,9 +22,7 @@ public class Account {
     private Integer version;
     private LocalDateTime createdAt;
 
-    public Account() {}
-
-    public Account(Long userId, String bankCode, String accountNo, String accountNoNorm) {
+    private Account(Long userId, String bankCode, String accountNo, String accountNoNorm) {
         this.userId = userId;
         this.bankCode = bankCode;
         this.accountNo = accountNo;
@@ -26,6 +31,38 @@ public class Account {
         this.status = AccountStatus.ACTIVATE;
         this.version = 0;
         this.createdAt = LocalDateTime.now();
+    }
+
+    public static Account create(Long userId, String bankCode, String accountNo) {
+        validateAccountData(userId, bankCode, accountNo);
+
+        String accountNoNorm = normalizeAccountNo(accountNo);
+        return new Account(userId, bankCode, accountNo, accountNoNorm);
+    }
+
+    private static void validateAccountData(Long userId, String bankCode, String accountNo) {
+        if (userId == null) {
+            throw new IllegalArgumentException("사용자 ID는 필수입니다");
+        }
+        if (bankCode == null || bankCode.trim().isEmpty()) {
+            throw new IllegalArgumentException("은행코드는 필수입니다");
+        }
+        if (accountNo == null || accountNo.trim().isEmpty()) {
+            throw new IllegalArgumentException("계좌번호는 필수입니다");
+        }
+        if (!isValidAccountNo(accountNo)) {
+            throw new IllegalArgumentException("유효한 계좌번호 형식이 아닙니다");
+        }
+    }
+
+    private static boolean isValidAccountNo(String accountNo) {
+        String normalized = normalizeAccountNo(accountNo);
+        return normalized.matches("^\\d{10,14}$"); // 10-14자리 숫자
+    }
+
+    private static String normalizeAccountNo(String accountNo) {
+        if (accountNo == null) return null;
+        return accountNo.replaceAll("[^0-9]", "");
     }
 
     public void deposit(BigDecimal amount) {
@@ -66,28 +103,4 @@ public class Account {
     public boolean isActive() {
         return AccountStatus.ACTIVATE.equals(this.status);
     }
-
-    // Getters
-    public Long getId() { return id; }
-    public Long getUserId() { return userId; }
-    public String getBankCode() { return bankCode; }
-    public String getAccountNo() { return accountNo; }
-    public String getAccountNoNorm() { return accountNoNorm; }
-    public BigDecimal getBalance() { return balance; }
-    public AccountStatus getStatus() { return status; }
-    public LocalDateTime getDeactivatedAt() { return deactivatedAt; }
-    public Integer getVersion() { return version; }
-    public LocalDateTime getCreatedAt() { return createdAt; }
-
-    // Setters (for JPA mapping)
-    public void setId(Long id) { this.id = id; }
-    public void setUserId(Long userId) { this.userId = userId; }
-    public void setBankCode(String bankCode) { this.bankCode = bankCode; }
-    public void setAccountNo(String accountNo) { this.accountNo = accountNo; }
-    public void setAccountNoNorm(String accountNoNorm) { this.accountNoNorm = accountNoNorm; }
-    public void setBalance(BigDecimal balance) { this.balance = balance; }
-    public void setStatus(AccountStatus status) { this.status = status; }
-    public void setDeactivatedAt(LocalDateTime deactivatedAt) { this.deactivatedAt = deactivatedAt; }
-    public void setVersion(Integer version) { this.version = version; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }

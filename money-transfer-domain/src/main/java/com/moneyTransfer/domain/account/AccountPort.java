@@ -3,7 +3,7 @@ package com.moneyTransfer.domain.account;
 import java.util.List;
 import java.util.Optional;
 
-public interface AccountRepository {
+public interface AccountPort {
 
     Account save(Account account);
 

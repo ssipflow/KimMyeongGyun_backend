@@ -8,9 +8,11 @@ import java.util.Optional;
 
 @Repository
 public interface UserJpaRepository extends JpaRepository<UserJpaEntity, Long> {
-    
+
     Optional<UserJpaEntity> findByIdCardNoNorm(String idCardNoNorm);
-    
+
+    Optional<UserJpaEntity> findByEmail(String email);
+
     boolean existsByIdCardNoNorm(String idCardNoNorm);
 
     boolean existsByEmail(String email);

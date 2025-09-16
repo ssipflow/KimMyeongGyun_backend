@@ -1,10 +1,12 @@
-package com.moneyTransfer.persistence.repository;
+package com.moneyTransfer.persistence.adapter;
 
 import com.moneyTransfer.domain.account.Account;
-import com.moneyTransfer.domain.account.AccountRepository;
+import com.moneyTransfer.domain.account.AccountPort;
 import com.moneyTransfer.domain.account.AccountStatus;
 import com.moneyTransfer.persistence.entity.AccountJpaEntity;
 import com.moneyTransfer.persistence.entity.UserJpaEntity;
+import com.moneyTransfer.persistence.repository.AccountJpaRepository;
+import com.moneyTransfer.persistence.repository.UserJpaRepository;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,7 +19,7 @@ import java.util.stream.Collectors;
 
 @Repository
 @Transactional
-public class AccountRepositoryImpl implements AccountRepository {
+public class JpaAccountPort implements AccountPort {
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -25,8 +27,8 @@ public class AccountRepositoryImpl implements AccountRepository {
     private final AccountJpaRepository accountJpaRepository;
     private final UserJpaRepository userJpaRepository;
 
-    public AccountRepositoryImpl(AccountJpaRepository accountJpaRepository,
-                                UserJpaRepository userJpaRepository) {
+    public JpaAccountPort(AccountJpaRepository accountJpaRepository,
+                          UserJpaRepository userJpaRepository) {
         this.accountJpaRepository = accountJpaRepository;
         this.userJpaRepository = userJpaRepository;
     }
