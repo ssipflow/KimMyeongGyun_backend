@@ -8,6 +8,7 @@ import com.moneyTransfer.domain.account.Account;
 import com.moneyTransfer.domain.account.AccountPort;
 import com.moneyTransfer.domain.user.User;
 import com.moneyTransfer.domain.user.UserPort;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,8 +34,8 @@ public class CreateAccountUseCase {
         // 3. 비즈니스 규칙 검증: 계좌번호 중복 체크
         validateAccountUniqueness(account);
 
-        // 4. Account 저장
-        Account savedAccount = accountPort.save(account);
+        // 4. Account 저장 (동시성 제어)
+        Account savedAccount = saveAccountWithConcurrencyControl(account);
 
         return new AccountResponse(savedAccount);
     }
@@ -49,12 +50,7 @@ public class CreateAccountUseCase {
                     validateUserDataConsistency(existingUser, request);
                     return existingUser;
                 })
-                .orElseGet(() -> {
-                    // 기존 User가 없으면 새로 생성
-                    User newUser = User.create(request.getUserName(), request.getEmail(), request.getIdCardNo());
-                    validateNewUserUniqueness(newUser);
-                    return userPort.save(newUser);
-                });
+                .orElseGet(() -> createNewUser(request));
     }
 
     private void validateUserDataConsistency(User existingUser, CreateAccountRequest request) {
@@ -69,15 +65,40 @@ public class CreateAccountUseCase {
         }
     }
 
-    private void validateNewUserUniqueness(User user) {
-        if (userPort.existsByEmail(user.getEmail())) {
-            throw new IllegalArgumentException(ErrorMessages.DUPLICATE_EMAIL);
+    private User createNewUser(CreateAccountRequest request) {
+        User newUser = User.create(request.getUserName(), request.getEmail(), request.getIdCardNo());
+
+        try {
+            return userPort.save(newUser);
+        } catch (DataIntegrityViolationException e) {
+            // 동시성으로 인한 중복 발생 시 적절한 에러 메시지 제공
+            String message = e.getMessage();
+            if (message != null && message.toLowerCase().contains("email")) {
+                throw new IllegalArgumentException(ErrorMessages.DUPLICATE_EMAIL);
+            }
+            if (message != null && message.toLowerCase().contains("id_card")) {
+                throw new IllegalArgumentException(ErrorMessages.DUPLICATE_ID_CARD);
+            }
+            throw e;
         }
     }
 
     private void validateAccountUniqueness(Account account) {
-        if (accountPort.existsByBankCodeAndAccountNoNorm(account.getBankCode(), account.getAccountNoNorm())) {
-            throw new IllegalArgumentException(ErrorMessages.DUPLICATE_ACCOUNT_NO);
+        // 데이터베이스 제약조건에 의존하여 중복 체크 로직 제거
+        // save 시점에 DataIntegrityViolationException으로 처리됨
+        // 매개변수는 호환성을 위해 유지
+    }
+
+    private Account saveAccountWithConcurrencyControl(Account account) {
+        try {
+            return accountPort.save(account);
+        } catch (DataIntegrityViolationException e) {
+            // 동시성으로 인한 계좌번호 중복 발생 시
+            String message = e.getMessage();
+            if (message != null && (message.toLowerCase().contains("account") || message.toLowerCase().contains("unique"))) {
+                throw new IllegalArgumentException(ErrorMessages.DUPLICATE_ACCOUNT_NO);
+            }
+            throw e;
         }
     }
 }

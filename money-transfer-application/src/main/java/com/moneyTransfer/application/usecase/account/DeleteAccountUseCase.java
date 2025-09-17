@@ -4,6 +4,7 @@ import com.moneyTransfer.common.constant.BusinessConstants;
 import com.moneyTransfer.common.constant.ErrorMessages;
 import com.moneyTransfer.domain.account.Account;
 import com.moneyTransfer.domain.account.AccountPort;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,6 +19,15 @@ public class DeleteAccountUseCase {
     }
 
     public void execute(Long accountId) {
+        try {
+            deleteAccountWithConcurrencyControl(accountId);
+        } catch (OptimisticLockingFailureException e) {
+            // 동시 수정 발생 시 재시도
+            deleteAccountWithConcurrencyControl(accountId);
+        }
+    }
+
+    private void deleteAccountWithConcurrencyControl(Long accountId) {
         Account account = accountPort.findById(accountId)
             .orElseThrow(() -> new IllegalArgumentException(ErrorMessages.ACCOUNT_NOT_FOUND));
 
