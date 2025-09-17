@@ -1,4 +1,4 @@
-package com.moneyTransfer.application.account;
+package com.moneyTransfer.application.dto.account;
 
 public class CreateAccountRequest {
     // User 정보

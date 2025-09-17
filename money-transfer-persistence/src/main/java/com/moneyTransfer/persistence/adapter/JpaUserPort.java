@@ -1,5 +1,6 @@
 package com.moneyTransfer.persistence.adapter;
 
+import com.moneyTransfer.common.constant.ErrorMessages;
 import com.moneyTransfer.domain.user.User;
 import com.moneyTransfer.domain.user.UserPort;
 import com.moneyTransfer.persistence.entity.UserJpaEntity;
@@ -32,7 +33,7 @@ public class JpaUserPort implements UserPort {
         } else {
             // 기존 사용자 업데이트
             entity = userJpaRepository.findById(user.getId())
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다"));
+                .orElseThrow(() -> new IllegalArgumentException(ErrorMessages.USER_NOT_FOUND));
         }
 
         // 도메인 객체의 상태를 JPA 엔티티에 반영

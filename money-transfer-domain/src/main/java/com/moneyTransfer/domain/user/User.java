@@ -1,5 +1,8 @@
 package com.moneyTransfer.domain.user;
 
+import com.moneyTransfer.common.constant.ErrorMessages;
+import com.moneyTransfer.common.util.StringNormalizer;
+import com.moneyTransfer.common.util.ValidationUtils;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -24,35 +27,21 @@ public class User {
         user.name = name;
         user.email = email;
         user.idCardNo = idCardNo;
-        user.idCardNoNorm = normalizeIdCardNo(idCardNo);
+        user.idCardNoNorm = StringNormalizer.normalizeIdCardNo(idCardNo);
         user.createdAt = LocalDateTime.now();
         return user;
     }
 
     private static void validateUserData(String name, String email, String idCardNo) {
-        if (name == null || name.trim().isEmpty()) {
-            throw new IllegalArgumentException("사용자명은 필수입니다");
+        if (!ValidationUtils.isNotBlank(name)) {
+            throw new IllegalArgumentException(ErrorMessages.USER_NAME_REQUIRED);
         }
-        if (email == null || !isValidEmail(email)) {
-            throw new IllegalArgumentException("유효한 이메일 형식이 아닙니다");
+        if (!ValidationUtils.isValidEmail(email)) {
+            throw new IllegalArgumentException(ErrorMessages.INVALID_EMAIL_FORMAT);
         }
-        if (idCardNo == null || !isValidIdCardNo(idCardNo)) {
-            throw new IllegalArgumentException("유효한 주민번호 형식이 아닙니다");
+        if (!ValidationUtils.isValidIdCardNo(idCardNo)) {
+            throw new IllegalArgumentException(ErrorMessages.INVALID_ID_CARD_FORMAT);
         }
-    }
-
-    private static boolean isValidEmail(String email) {
-        return email.matches("^[A-Za-z0-9+_.-]+@(.+)$");
-    }
-
-    private static boolean isValidIdCardNo(String idCardNo) {
-        String normalized = normalizeIdCardNo(idCardNo);
-        return normalized.matches("^\\d{13}$");
-    }
-
-    private static String normalizeIdCardNo(String idCardNo) {
-        if (idCardNo == null) return null;
-        return idCardNo.replaceAll("[^0-9]", "");
     }
 
 }

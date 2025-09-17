@@ -1,5 +1,6 @@
 package com.moneyTransfer.persistence.adapter;
 
+import com.moneyTransfer.common.constant.ErrorMessages;
 import com.moneyTransfer.domain.account.Account;
 import com.moneyTransfer.domain.account.AccountPort;
 import com.moneyTransfer.domain.account.AccountStatus;
@@ -40,7 +41,7 @@ public class JpaAccountPort implements AccountPort {
         if (account.getId() == null) {
             // 새로운 계좌 생성
             UserJpaEntity user = userJpaRepository.findById(account.getUserId())
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다"));
+                .orElseThrow(() -> new IllegalArgumentException(ErrorMessages.USER_NOT_FOUND));
 
             entity = new AccountJpaEntity(
                 user,
@@ -51,7 +52,7 @@ public class JpaAccountPort implements AccountPort {
         } else {
             // 기존 계좌 업데이트
             entity = accountJpaRepository.findById(account.getId())
-                .orElseThrow(() -> new IllegalArgumentException("계좌를 찾을 수 없습니다"));
+                .orElseThrow(() -> new IllegalArgumentException(ErrorMessages.ACCOUNT_NOT_FOUND));
         }
 
         // 도메인 객체의 상태를 JPA 엔티티에 반영

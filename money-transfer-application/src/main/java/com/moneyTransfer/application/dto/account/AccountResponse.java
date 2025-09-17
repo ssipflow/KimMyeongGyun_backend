@@ -1,4 +1,4 @@
-package com.moneyTransfer.application.account;
+package com.moneyTransfer.application.dto.account;
 
 import com.moneyTransfer.domain.account.Account;
 import com.moneyTransfer.domain.account.AccountStatus;

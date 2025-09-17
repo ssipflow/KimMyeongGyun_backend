@@ -1,5 +1,9 @@
 package com.moneyTransfer.domain.account;
 
+import com.moneyTransfer.common.constant.BusinessConstants;
+import com.moneyTransfer.common.constant.ErrorMessages;
+import com.moneyTransfer.common.util.StringNormalizer;
+import com.moneyTransfer.common.util.ValidationUtils;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -27,7 +31,7 @@ public class Account {
         this.bankCode = bankCode;
         this.accountNo = accountNo;
         this.accountNoNorm = accountNoNorm;
-        this.balance = BigDecimal.ZERO;
+        this.balance = BusinessConstants.ZERO_AMOUNT;
         this.status = AccountStatus.ACTIVATE;
         this.version = 0;
         this.createdAt = LocalDateTime.now();
@@ -36,60 +40,51 @@ public class Account {
     public static Account create(Long userId, String bankCode, String accountNo) {
         validateAccountData(userId, bankCode, accountNo);
 
-        String accountNoNorm = normalizeAccountNo(accountNo);
+        String accountNoNorm = StringNormalizer.normalizeAccountNo(accountNo);
         return new Account(userId, bankCode, accountNo, accountNoNorm);
     }
 
     private static void validateAccountData(Long userId, String bankCode, String accountNo) {
         if (userId == null) {
-            throw new IllegalArgumentException("사용자 ID는 필수입니다");
+            throw new IllegalArgumentException(ErrorMessages.USER_ID_REQUIRED);
         }
-        if (bankCode == null || bankCode.trim().isEmpty()) {
-            throw new IllegalArgumentException("은행코드는 필수입니다");
+        if (!ValidationUtils.isNotBlank(bankCode)) {
+            throw new IllegalArgumentException(ErrorMessages.BANK_CODE_REQUIRED);
         }
-        if (accountNo == null || accountNo.trim().isEmpty()) {
-            throw new IllegalArgumentException("계좌번호는 필수입니다");
+        if (!ValidationUtils.isNotBlank(accountNo)) {
+            throw new IllegalArgumentException(ErrorMessages.ACCOUNT_NO_REQUIRED);
         }
-        if (!isValidAccountNo(accountNo)) {
-            throw new IllegalArgumentException("유효한 계좌번호 형식이 아닙니다");
+        if (!ValidationUtils.isValidAccountNo(accountNo)) {
+            throw new IllegalArgumentException(ErrorMessages.INVALID_ACCOUNT_NO_FORMAT);
         }
     }
 
-    private static boolean isValidAccountNo(String accountNo) {
-        String normalized = normalizeAccountNo(accountNo);
-        return normalized.matches("^\\d{10,14}$"); // 10-14자리 숫자
-    }
-
-    private static String normalizeAccountNo(String accountNo) {
-        if (accountNo == null) return null;
-        return accountNo.replaceAll("[^0-9]", "");
-    }
 
     public void deposit(BigDecimal amount) {
-        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("입금 금액은 0보다 커야 합니다");
+        if (amount == null || amount.compareTo(BusinessConstants.ZERO_AMOUNT) <= 0) {
+            throw new IllegalArgumentException(ErrorMessages.DEPOSIT_AMOUNT_INVALID);
         }
         if (!isActive()) {
-            throw new IllegalStateException("비활성 계좌에는 입금할 수 없습니다");
+            throw new IllegalStateException(ErrorMessages.INACTIVE_ACCOUNT_DEPOSIT);
         }
         this.balance = this.balance.add(amount);
     }
 
     public void withdraw(BigDecimal amount) {
-        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("출금 금액은 0보다 커야 합니다");
+        if (amount == null || amount.compareTo(BusinessConstants.ZERO_AMOUNT) <= 0) {
+            throw new IllegalArgumentException(ErrorMessages.WITHDRAW_AMOUNT_INVALID);
         }
         if (!isActive()) {
-            throw new IllegalStateException("비활성 계좌에서는 출금할 수 없습니다");
+            throw new IllegalStateException(ErrorMessages.INACTIVE_ACCOUNT_WITHDRAW);
         }
         if (!canWithdraw(amount)) {
-            throw new IllegalArgumentException("잔액이 부족합니다");
+            throw new IllegalArgumentException(ErrorMessages.INSUFFICIENT_BALANCE);
         }
         this.balance = this.balance.subtract(amount);
     }
 
     public boolean canWithdraw(BigDecimal amount) {
-        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+        if (amount == null || amount.compareTo(BusinessConstants.ZERO_AMOUNT) <= 0) {
             return false;
         }
         return this.balance.compareTo(amount) >= 0;
