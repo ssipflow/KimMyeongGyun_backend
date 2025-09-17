@@ -31,7 +31,7 @@ public class AccountDtoMapper {
                 applicationResponse.getBalance(),
                 applicationResponse.getStatus().name(), // Enum을 String으로 변환
                 applicationResponse.getCreatedAt(),
-                null // deactivatedAt은 AccountResponse에 없으므로 null
+                applicationResponse.getDeactivatedAt()
         );
     }
 

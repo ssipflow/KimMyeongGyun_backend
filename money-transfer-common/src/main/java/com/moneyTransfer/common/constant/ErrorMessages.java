@@ -28,6 +28,13 @@ public class ErrorMessages {
     public static final String INACTIVE_ACCOUNT_DEPOSIT = "비활성 계좌에는 입금할 수 없습니다";
     public static final String INACTIVE_ACCOUNT_WITHDRAW = "비활성 계좌에서는 출금할 수 없습니다";
 
+    // User 일관성 검증 에러 메시지
+    public static final String USER_NAME_MISMATCH = "제공된 사용자명이 기존 정보와 일치하지 않습니다";
+    public static final String USER_EMAIL_MISMATCH = "제공된 이메일이 기존 정보와 일치하지 않습니다";
+
+    // API 관련 에러 메시지
+    public static final String MISSING_QUERY_PARAMETERS = "userId 또는 (bankCode와 accountNo) 파라미터가 필요합니다";
+
     private ErrorMessages() {
     }
 }

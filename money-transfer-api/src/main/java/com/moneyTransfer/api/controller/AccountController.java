@@ -6,6 +6,7 @@ import com.moneyTransfer.api.mapper.AccountDtoMapper;
 import com.moneyTransfer.application.dto.account.AccountResponse;
 import com.moneyTransfer.application.dto.account.CreateAccountRequest;
 import com.moneyTransfer.application.usecase.account.*;
+import com.moneyTransfer.common.constant.ErrorMessages;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -85,6 +86,6 @@ public class AccountController {
             }).orElse(ResponseEntity.ok(List.of()));
         }
 
-        throw new IllegalArgumentException("userId 또는 (bankCode와 accountNo) 파라미터가 필요합니다");
+        throw new IllegalArgumentException(ErrorMessages.MISSING_QUERY_PARAMETERS);
     }
 }

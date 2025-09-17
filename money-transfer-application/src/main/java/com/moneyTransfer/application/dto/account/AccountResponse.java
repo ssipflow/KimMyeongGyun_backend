@@ -13,6 +13,7 @@ public class AccountResponse {
     private String accountNo;
     private BigDecimal balance;
     private AccountStatus status;
+    private LocalDateTime deactivatedAt;
     private LocalDateTime createdAt;
 
     public AccountResponse() {}
@@ -24,6 +25,7 @@ public class AccountResponse {
         this.accountNo = account.getAccountNo();
         this.balance = account.getBalance();
         this.status = account.getStatus();
+        this.deactivatedAt = account.getDeactivatedAt();
         this.createdAt = account.getCreatedAt();
     }
 
@@ -44,6 +46,9 @@ public class AccountResponse {
 
     public AccountStatus getStatus() { return status; }
     public void setStatus(AccountStatus status) { this.status = status; }
+
+    public LocalDateTime getDeactivatedAt() { return deactivatedAt; }
+    public void setDeactivatedAt(LocalDateTime deactivatedAt) { this.deactivatedAt = deactivatedAt; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

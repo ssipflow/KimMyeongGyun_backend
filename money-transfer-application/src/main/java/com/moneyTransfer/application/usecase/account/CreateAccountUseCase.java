@@ -3,6 +3,7 @@ package com.moneyTransfer.application.usecase.account;
 import com.moneyTransfer.application.dto.account.AccountResponse;
 import com.moneyTransfer.application.dto.account.CreateAccountRequest;
 import com.moneyTransfer.common.constant.ErrorMessages;
+import com.moneyTransfer.common.util.StringNormalizer;
 import com.moneyTransfer.domain.account.Account;
 import com.moneyTransfer.domain.account.AccountPort;
 import com.moneyTransfer.domain.user.User;
@@ -23,33 +24,54 @@ public class CreateAccountUseCase {
     }
 
     public AccountResponse execute(CreateAccountRequest request) {
-        // 1. User 도메인 객체 생성 (도메인에서 검증)
-        User user = User.create(request.getUserName(), request.getEmail(), request.getIdCardNo());
+        // 1. 주민번호로 기존 User 찾기 또는 생성
+        User user = findOrCreateUser(request);
 
-        // 2. 비즈니스 규칙 검증: 중복 체크
-        validateUserUniqueness(user);
+        // 2. Account 도메인 객체 생성 (도메인에서 검증)
+        Account account = Account.create(user.getId(), request.getBankCode(), request.getAccountNo());
 
-        // 3. User 저장
-        User savedUser = userPort.save(user);
-
-        // 4. Account 도메인 객체 생성 (도메인에서 검증)
-        Account account = Account.create(savedUser.getId(), request.getBankCode(), request.getAccountNo());
-
-        // 5. 비즈니스 규칙 검증: 계좌번호 중복 체크
+        // 3. 비즈니스 규칙 검증: 계좌번호 중복 체크
         validateAccountUniqueness(account);
 
-        // 6. Account 저장
+        // 4. Account 저장
         Account savedAccount = accountPort.save(account);
 
         return new AccountResponse(savedAccount);
     }
 
-    private void validateUserUniqueness(User user) {
+    private User findOrCreateUser(CreateAccountRequest request) {
+        // 정규화된 주민번호로 기존 User 찾기
+        String idCardNoNorm = StringNormalizer.normalizeIdCardNo(request.getIdCardNo());
+
+        return userPort.findByIdCardNoNorm(idCardNoNorm)
+                .map(existingUser -> {
+                    // 기존 User가 있으면 제공된 정보와 일치하는지 검증
+                    validateUserDataConsistency(existingUser, request);
+                    return existingUser;
+                })
+                .orElseGet(() -> {
+                    // 기존 User가 없으면 새로 생성
+                    User newUser = User.create(request.getUserName(), request.getEmail(), request.getIdCardNo());
+                    validateNewUserUniqueness(newUser);
+                    return userPort.save(newUser);
+                });
+    }
+
+    private void validateUserDataConsistency(User existingUser, CreateAccountRequest request) {
+        // 이름 검증
+        if (!existingUser.getName().equals(request.getUserName())) {
+            throw new IllegalArgumentException(ErrorMessages.USER_NAME_MISMATCH);
+        }
+
+        // 이메일 검증
+        if (!existingUser.getEmail().equals(request.getEmail())) {
+            throw new IllegalArgumentException(ErrorMessages.USER_EMAIL_MISMATCH);
+        }
+    }
+
+    private void validateNewUserUniqueness(User user) {
         if (userPort.existsByEmail(user.getEmail())) {
             throw new IllegalArgumentException(ErrorMessages.DUPLICATE_EMAIL);
-        }
-        if (userPort.existsByIdCardNoNorm(user.getIdCardNoNorm())) {
-            throw new IllegalArgumentException(ErrorMessages.DUPLICATE_ID_CARD);
         }
     }
 
