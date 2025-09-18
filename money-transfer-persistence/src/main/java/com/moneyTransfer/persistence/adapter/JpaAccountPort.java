@@ -41,18 +41,18 @@ public class JpaAccountPort implements AccountPort {
         if (account.getId() == null) {
             // 새로운 계좌 생성
             UserJpaEntity user = userJpaRepository.findById(account.getUserId())
-                .orElseThrow(() -> new IllegalArgumentException(ErrorMessages.USER_NOT_FOUND));
+                    .orElseThrow(() -> new IllegalArgumentException(ErrorMessages.USER_NOT_FOUND));
 
             entity = new AccountJpaEntity(
-                user,
-                account.getBankCode(),
-                account.getAccountNo(),
-                account.getAccountNoNorm()
+                    user,
+                    account.getBankCode(),
+                    account.getAccountNo(),
+                    account.getAccountNoNorm()
             );
         } else {
             // 기존 계좌 업데이트
             entity = accountJpaRepository.findById(account.getId())
-                .orElseThrow(() -> new IllegalArgumentException(ErrorMessages.ACCOUNT_NOT_FOUND));
+                    .orElseThrow(() -> new IllegalArgumentException(ErrorMessages.ACCOUNT_NOT_FOUND));
         }
 
         // 도메인 객체의 상태를 JPA 엔티티에 반영
@@ -62,13 +62,17 @@ public class JpaAccountPort implements AccountPort {
         entity.setVersion(account.getVersion());
 
         AccountJpaEntity savedEntity = accountJpaRepository.save(entity);
+
+        // 명시적 flush로 즉시 DB 반영하여 예외를 여기서 발생시킴
+        entityManager.flush();
+
         return mapToDomain(savedEntity);
     }
 
     @Override
     public Optional<Account> findById(Long id) {
         return accountJpaRepository.findByIdWithUser(id)
-            .map(this::mapToDomain);
+                .map(this::mapToDomain);
     }
 
     @Override

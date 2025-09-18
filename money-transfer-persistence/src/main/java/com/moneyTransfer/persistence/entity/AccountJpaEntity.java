@@ -6,8 +6,11 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "accounts",
-       uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "bank_code", "account_no_norm"}),
-       indexes = {
+        uniqueConstraints = {
+            @UniqueConstraint(columnNames = {"user_id", "bank_code", "account_no_norm"}),
+            @UniqueConstraint(columnNames = {"bank_code", "account_no_norm"})
+        },
+        indexes = {
            @Index(name = "idx_account_user", columnList = "user_id")
        })
 public class AccountJpaEntity {

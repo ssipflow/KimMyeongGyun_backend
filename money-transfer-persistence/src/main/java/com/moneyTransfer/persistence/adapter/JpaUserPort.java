@@ -75,13 +75,13 @@ public class JpaUserPort implements UserPort {
     }
 
     private User mapToDomain(UserJpaEntity entity) {
-        // User.create() 메서드를 사용하여 객체 생성
-        User user = User.create(entity.getName(), entity.getEmail(), entity.getIdCardNo());
-
-        // ID와 생성일시는 직접 설정 (JPA에서 로드된 값)
+        User user = new User();
         user.setId(entity.getId());
+        user.setName(entity.getName());
+        user.setEmail(entity.getEmail());
+        user.setIdCardNo(entity.getIdCardNo());
+        user.setIdCardNoNorm(entity.getIdCardNoNorm());
         user.setCreatedAt(entity.getCreatedAt());
-
         return user;
     }
 }

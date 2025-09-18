@@ -35,6 +35,9 @@ public class ErrorMessages {
     // API 관련 에러 메시지
     public static final String MISSING_QUERY_PARAMETERS = "userId 또는 (bankCode와 accountNo) 파라미터가 필요합니다";
 
+    // 동시성 제어 관련 에러 메시지
+    public static final String OPTIMISTIC_LOCK_CONFLICT = "다른 사용자가 계좌를 수정 중입니다. 잠시 후 다시 시도해주세요.";
+
     private ErrorMessages() {
     }
 }

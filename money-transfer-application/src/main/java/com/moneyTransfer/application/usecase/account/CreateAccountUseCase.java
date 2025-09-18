@@ -31,10 +31,7 @@ public class CreateAccountUseCase {
         // 2. Account 도메인 객체 생성 (도메인에서 검증)
         Account account = Account.create(user.getId(), request.getBankCode(), request.getAccountNo());
 
-        // 3. 비즈니스 규칙 검증: 계좌번호 중복 체크
-        validateAccountUniqueness(account);
-
-        // 4. Account 저장 (동시성 제어)
+        // 3. Account 저장 (동시성 제어)
         Account savedAccount = saveAccountWithConcurrencyControl(account);
 
         return new AccountResponse(savedAccount);
@@ -81,12 +78,6 @@ public class CreateAccountUseCase {
             }
             throw e;
         }
-    }
-
-    private void validateAccountUniqueness(Account account) {
-        // 데이터베이스 제약조건에 의존하여 중복 체크 로직 제거
-        // save 시점에 DataIntegrityViolationException으로 처리됨
-        // 매개변수는 호환성을 위해 유지
     }
 
     private Account saveAccountWithConcurrencyControl(Account account) {

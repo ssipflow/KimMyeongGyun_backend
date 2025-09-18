@@ -22,8 +22,7 @@ public class DeleteAccountUseCase {
         try {
             deleteAccountWithConcurrencyControl(accountId);
         } catch (OptimisticLockingFailureException e) {
-            // 동시 수정 발생 시 재시도
-            deleteAccountWithConcurrencyControl(accountId);
+            throw new IllegalStateException(ErrorMessages.OPTIMISTIC_LOCK_CONFLICT);
         }
     }
 
