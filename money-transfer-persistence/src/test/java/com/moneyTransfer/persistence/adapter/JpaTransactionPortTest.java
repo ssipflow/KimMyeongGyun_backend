@@ -84,7 +84,7 @@ class JpaTransactionPortTest {
         assertThat(savedTransaction.getTransactionType()).isEqualTo(TransactionType.DEPOSIT);
         assertThat(savedTransaction.getAmount()).isEqualTo(new BigDecimal("50000"));
         assertThat(savedTransaction.getFee()).isEqualTo(BigDecimal.ZERO);
-        assertThat(savedTransaction.getAccountToNo()).isNull();
+        assertThat(savedTransaction.getRelatedAccountId()).isNull();
         assertThat(savedTransaction.getDescription()).isEqualTo("급여 입금");
         assertThat(savedTransaction.getCreatedAt()).isNotNull();
         assertThat(savedTransaction.getUpdatedAt()).isNotNull();
@@ -114,39 +114,73 @@ class JpaTransactionPortTest {
         assertThat(savedTransaction.getTransactionType()).isEqualTo(TransactionType.WITHDRAW);
         assertThat(savedTransaction.getAmount()).isEqualTo(new BigDecimal("30000"));
         assertThat(savedTransaction.getFee()).isEqualTo(BigDecimal.ZERO);
-        assertThat(savedTransaction.getAccountToNo()).isNull();
+        assertThat(savedTransaction.getRelatedAccountId()).isNull();
         assertThat(savedTransaction.getDescription()).isEqualTo("ATM 출금");
     }
 
     @Test
-    @DisplayName("이체 거래를 저장할 수 있다")
-    void saveTransferTransaction() {
+    @DisplayName("이체 송금 거래를 저장할 수 있다")
+    void saveTransferSendTransaction() {
         // given
-        Transaction transfer = Transaction.createTransfer(
+        Transaction transferSend = Transaction.createTransferSend(
                 testAccount.getId(),
-                "002-987654321",
+                targetAccount.getId(),
                 new BigDecimal("100000"),
                 new BigDecimal("1000"),
                 "김철수에게 이체"
         );
+        transferSend.setBalanceAfter(new BigDecimal("400000"));
 
         // when
-        Transaction savedTransaction = transactionPort.save(transfer);
+        Transaction savedTransaction = transactionPort.save(transferSend);
 
         // 저장된 도메인 정보 로깅
-        log.info("Saved Transaction: id={}, accountId={}, type={}, accountToNo={}, amount={}, fee={}, description={}",
+        log.info("Saved Transaction: id={}, accountId={}, type={}, relatedAccountId={}, amount={}, balanceAfter={}, fee={}, description={}",
                 savedTransaction.getId(), savedTransaction.getAccountId(), savedTransaction.getTransactionType(),
-                savedTransaction.getAccountToNo(), savedTransaction.getAmount(), savedTransaction.getFee(),
-                savedTransaction.getDescription());
+                savedTransaction.getRelatedAccountId(), savedTransaction.getAmount(), savedTransaction.getBalanceAfter(),
+                savedTransaction.getFee(), savedTransaction.getDescription());
 
         // then
         assertThat(savedTransaction.getId()).isNotNull();
         assertThat(savedTransaction.getAccountId()).isEqualTo(testAccount.getId());
-        assertThat(savedTransaction.getTransactionType()).isEqualTo(TransactionType.TRANSFER);
-        assertThat(savedTransaction.getAccountToNo()).isEqualTo("002-987654321");
+        assertThat(savedTransaction.getTransactionType()).isEqualTo(TransactionType.TRANSFER_SEND);
+        assertThat(savedTransaction.getRelatedAccountId()).isEqualTo(targetAccount.getId());
         assertThat(savedTransaction.getAmount()).isEqualTo(new BigDecimal("100000"));
+        assertThat(savedTransaction.getBalanceAfter()).isEqualTo(new BigDecimal("400000"));
         assertThat(savedTransaction.getFee()).isEqualTo(new BigDecimal("1000"));
         assertThat(savedTransaction.getDescription()).isEqualTo("김철수에게 이체");
+    }
+
+    @Test
+    @DisplayName("이체 수금 거래를 저장할 수 있다")
+    void saveTransferReceiveTransaction() {
+        // given
+        Transaction transferReceive = Transaction.createTransferReceive(
+                targetAccount.getId(),
+                testAccount.getId(),
+                new BigDecimal("100000"),
+                "홍길동으로부터 이체 수금"
+        );
+        transferReceive.setBalanceAfter(new BigDecimal("600000"));
+
+        // when
+        Transaction savedTransaction = transactionPort.save(transferReceive);
+
+        // 저장된 도메인 정보 로깅
+        log.info("Saved Transaction: id={}, accountId={}, type={}, relatedAccountId={}, amount={}, balanceAfter={}, fee={}, description={}",
+                savedTransaction.getId(), savedTransaction.getAccountId(), savedTransaction.getTransactionType(),
+                savedTransaction.getRelatedAccountId(), savedTransaction.getAmount(), savedTransaction.getBalanceAfter(),
+                savedTransaction.getFee(), savedTransaction.getDescription());
+
+        // then
+        assertThat(savedTransaction.getId()).isNotNull();
+        assertThat(savedTransaction.getAccountId()).isEqualTo(targetAccount.getId());
+        assertThat(savedTransaction.getTransactionType()).isEqualTo(TransactionType.TRANSFER_RECEIVE);
+        assertThat(savedTransaction.getRelatedAccountId()).isEqualTo(testAccount.getId());
+        assertThat(savedTransaction.getAmount()).isEqualTo(new BigDecimal("100000"));
+        assertThat(savedTransaction.getBalanceAfter()).isEqualTo(new BigDecimal("600000"));
+        assertThat(savedTransaction.getFee()).isEqualTo(BigDecimal.ZERO);
+        assertThat(savedTransaction.getDescription()).isEqualTo("홍길동으로부터 이체 수금");
     }
 
     @Test
@@ -171,12 +205,12 @@ class JpaTransactionPortTest {
         // given
         Transaction deposit = Transaction.createDeposit(testAccount.getId(), new BigDecimal("50000"), "입금");
         Transaction withdraw = Transaction.createWithdraw(testAccount.getId(), new BigDecimal("20000"), "출금");
-        Transaction transfer = Transaction.createTransfer(testAccount.getId(), "002-987654321",
+        Transaction transferSend = Transaction.createTransferSend(testAccount.getId(), targetAccount.getId(),
                 new BigDecimal("30000"), new BigDecimal("300"), "이체");
 
         transactionPort.save(deposit);
         transactionPort.save(withdraw);
-        transactionPort.save(transfer);
+        transactionPort.save(transferSend);
 
         // when
         List<Transaction> transactions = transactionPort.findByAccountId(testAccount.getId());
@@ -188,7 +222,7 @@ class JpaTransactionPortTest {
         // then
         assertThat(transactions).hasSize(3);
         // 생성일 역순으로 정렬되어야 함
-        assertThat(transactions.get(0).getTransactionType()).isEqualTo(TransactionType.TRANSFER); // 가장 최근
+        assertThat(transactions.get(0).getTransactionType()).isEqualTo(TransactionType.TRANSFER_SEND); // 가장 최근
         assertThat(transactions.get(1).getTransactionType()).isEqualTo(TransactionType.WITHDRAW);
         assertThat(transactions.get(2).getTransactionType()).isEqualTo(TransactionType.DEPOSIT); // 가장 오래됨
     }
@@ -199,7 +233,7 @@ class JpaTransactionPortTest {
         // given
         Transaction first = Transaction.createDeposit(testAccount.getId(), new BigDecimal("10000"), "첫 번째");
         Transaction second = Transaction.createWithdraw(testAccount.getId(), new BigDecimal("5000"), "두 번째");
-        Transaction third = Transaction.createTransfer(testAccount.getId(), "002-987654321",
+        Transaction third = Transaction.createTransferSend(testAccount.getId(), targetAccount.getId(),
                 new BigDecimal("3000"), new BigDecimal("30"), "세 번째");
 
         try {
@@ -291,5 +325,143 @@ class JpaTransactionPortTest {
 
         // then
         assertThat(transactions).isEmpty();
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 relatedAccount로 거래 저장 시 예외가 발생한다")
+    void saveTransactionWithNonExistentRelatedAccount() {
+        // given
+        Transaction transferSend = Transaction.createTransferSend(
+                testAccount.getId(),
+                9999L, // 존재하지 않는 연관 계좌
+                new BigDecimal("10000"),
+                new BigDecimal("100"),
+                "존재하지 않는 계좌로 이체"
+        );
+
+        // when & then
+        assertThatThrownBy(() -> transactionPort.save(transferSend))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("계좌를 찾을 수 없습니다");
+    }
+
+    @Test
+    @DisplayName("Domain-Entity 매핑이 정확하게 동작한다")
+    void testDomainEntityMapping() {
+        // given
+        Transaction originalTransaction = Transaction.createTransferSend(
+                testAccount.getId(),
+                targetAccount.getId(),
+                new BigDecimal("50000"),
+                new BigDecimal("500"),
+                "도메인 매핑 테스트"
+        );
+        originalTransaction.setBalanceAfter(new BigDecimal("450000"));
+
+        // when
+        Transaction savedTransaction = transactionPort.save(originalTransaction);
+
+        // then - 모든 필드가 정확히 매핑되는지 검증
+        assertThat(savedTransaction.getId()).isNotNull();
+        assertThat(savedTransaction.getAccountId()).isEqualTo(originalTransaction.getAccountId());
+        assertThat(savedTransaction.getRelatedAccountId()).isEqualTo(originalTransaction.getRelatedAccountId());
+        assertThat(savedTransaction.getTransactionType()).isEqualTo(originalTransaction.getTransactionType());
+        assertThat(savedTransaction.getAmount()).isEqualTo(originalTransaction.getAmount());
+        assertThat(savedTransaction.getBalanceAfter()).isEqualTo(originalTransaction.getBalanceAfter());
+        assertThat(savedTransaction.getFee()).isEqualTo(originalTransaction.getFee());
+        assertThat(savedTransaction.getDescription()).isEqualTo(originalTransaction.getDescription());
+        assertThat(savedTransaction.getCreatedAt()).isNotNull();
+        assertThat(savedTransaction.getUpdatedAt()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("balanceAfter 필드가 정확히 저장되고 조회된다")
+    void testBalanceAfterField() {
+        // given
+        BigDecimal expectedBalance = new BigDecimal("1234567.89");
+        Transaction deposit = Transaction.createDeposit(
+                testAccount.getId(),
+                new BigDecimal("100000"),
+                "잔액 필드 테스트"
+        );
+        deposit.setBalanceAfter(expectedBalance);
+
+        // when
+        Transaction savedTransaction = transactionPort.save(deposit);
+
+        // then
+        assertThat(savedTransaction.getBalanceAfter()).isEqualTo(expectedBalance);
+
+        // 조회해서도 확인
+        List<Transaction> found = transactionPort.findByAccountId(testAccount.getId());
+        assertThat(found).hasSize(1);
+        assertThat(found.get(0).getBalanceAfter()).isEqualTo(expectedBalance);
+    }
+
+    @Test
+    @DisplayName("이체 관계에서 양방향 조회가 정확히 동작한다")
+    void testBidirectionalTransferQuery() {
+        // given - A가 B에게 이체
+        Transaction transferSend = Transaction.createTransferSend(
+                testAccount.getId(),
+                targetAccount.getId(),
+                new BigDecimal("50000"),
+                new BigDecimal("500"),
+                "양방향 이체 테스트"
+        );
+        transferSend.setBalanceAfter(new BigDecimal("950000"));
+
+        Transaction transferReceive = Transaction.createTransferReceive(
+                targetAccount.getId(),
+                testAccount.getId(),
+                new BigDecimal("50000"),
+                "양방향 이체 테스트"
+        );
+        transferReceive.setBalanceAfter(new BigDecimal("1050000"));
+
+        transactionPort.save(transferSend);
+        transactionPort.save(transferReceive);
+
+        // when
+        List<Transaction> fromAccountTransactions = transactionPort.findByAccountId(testAccount.getId());
+        List<Transaction> toAccountTransactions = transactionPort.findByAccountId(targetAccount.getId());
+
+        // then
+        assertThat(fromAccountTransactions).hasSize(1);
+        Transaction fromTx = fromAccountTransactions.get(0);
+        assertThat(fromTx.getTransactionType()).isEqualTo(TransactionType.TRANSFER_SEND);
+        assertThat(fromTx.getAccountId()).isEqualTo(testAccount.getId());
+        assertThat(fromTx.getRelatedAccountId()).isEqualTo(targetAccount.getId());
+
+        assertThat(toAccountTransactions).hasSize(1);
+        Transaction toTx = toAccountTransactions.get(0);
+        assertThat(toTx.getTransactionType()).isEqualTo(TransactionType.TRANSFER_RECEIVE);
+        assertThat(toTx.getAccountId()).isEqualTo(targetAccount.getId());
+        assertThat(toTx.getRelatedAccountId()).isEqualTo(testAccount.getId());
+    }
+
+    @Test
+    @DisplayName("대용량 거래 내역 조회 성능 테스트")
+    void testLargeVolumeQuery() {
+        // given - 많은 거래 생성
+        for (int i = 0; i < 100; i++) {
+            Transaction transaction = Transaction.createDeposit(
+                    testAccount.getId(),
+                    new BigDecimal("1000"),
+                    "성능 테스트 " + i
+            );
+            transactionPort.save(transaction);
+        }
+
+        // when
+        long startTime = System.currentTimeMillis();
+        List<Transaction> transactions = transactionPort.findByAccountId(testAccount.getId());
+        long endTime = System.currentTimeMillis();
+
+        log.info("조회 시간: {}ms, 거래 건수: {}", (endTime - startTime), transactions.size());
+
+        // then
+        assertThat(transactions).hasSize(100);
+        assertThat(endTime - startTime).isLessThan(1000); // 1초 미만
     }
 }

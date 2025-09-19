@@ -40,16 +40,16 @@ public class JpaTransactionPort implements TransactionPort {
         AccountJpaEntity accountEntity = accountJpaRepository.findById(transaction.getAccountId())
             .orElseThrow(() -> new IllegalArgumentException(ErrorMessages.ACCOUNT_NOT_FOUND));
 
-        AccountJpaEntity accountToEntity = null;
-        if (transaction.getAccountToId() != null) {
-            accountToEntity = accountJpaRepository.findById(transaction.getAccountToId())
+        AccountJpaEntity relatedAccountEntity = null;
+        if (transaction.getRelatedAccountId() != null) {
+            relatedAccountEntity = accountJpaRepository.findById(transaction.getRelatedAccountId())
                 .orElseThrow(() -> new IllegalArgumentException(ErrorMessages.ACCOUNT_NOT_FOUND));
         }
 
         TransactionJpaEntity entity = new TransactionJpaEntity(
             mapTypeToInteger(transaction.getTransactionType()),
             accountEntity,
-            accountToEntity,
+            relatedAccountEntity,
             transaction.getAmount(),
             transaction.getBalanceAfter(),
             transaction.getFee(),
@@ -95,7 +95,7 @@ public class JpaTransactionPort implements TransactionPort {
         Transaction transaction = new Transaction();
         transaction.setId(entity.getId());
         transaction.setAccountId(entity.getAccount().getId());
-        transaction.setAccountToId(entity.getAccountTo() != null ? entity.getAccountTo().getId() : null);
+        transaction.setRelatedAccountId(entity.getRelatedAccount() != null ? entity.getRelatedAccount().getId() : null);
         transaction.setTransactionType(mapTypeFromInteger(entity.getType()));
         transaction.setAmount(entity.getAmount());
         transaction.setBalanceAfter(entity.getBalanceAfter());

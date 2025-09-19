@@ -7,13 +7,9 @@ import com.moneyTransfer.domain.account.Account;
 import com.moneyTransfer.domain.account.AccountPort;
 import com.moneyTransfer.domain.transaction.Transaction;
 import com.moneyTransfer.domain.transaction.TransactionPort;
-import com.moneyTransfer.domain.transaction.TransactionType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -42,7 +38,7 @@ public class DepositUseCase {
         return new TransactionResponse(
                 savedTransaction.getId(),
                 savedTransaction.getAccountId(),
-                savedTransaction.getAccountToId(),
+                savedTransaction.getRelatedAccountId(),
                 savedTransaction.getTransactionType(),
                 savedTransaction.getAmount(),
                 savedTransaction.getBalanceAfter(),

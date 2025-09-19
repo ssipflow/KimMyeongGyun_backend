@@ -81,7 +81,7 @@ class TransactionJpaRepositoryTest {
         assertThat(savedTransaction.getAmount()).isEqualTo(new BigDecimal("10000"));
         assertThat(savedTransaction.getBalanceAfter()).isEqualTo(new BigDecimal("10000"));
         assertThat(savedTransaction.getFee()).isEqualTo(BigDecimal.ZERO);
-        assertThat(savedTransaction.getAccountTo()).isNull();
+        assertThat(savedTransaction.getRelatedAccount()).isNull();
     }
 
     @Test
@@ -114,7 +114,7 @@ class TransactionJpaRepositoryTest {
         assertThat(savedTransaction.getAmount()).isEqualTo(new BigDecimal("5000"));
         assertThat(savedTransaction.getBalanceAfter()).isEqualTo(new BigDecimal("5000"));
         assertThat(savedTransaction.getFee()).isEqualTo(BigDecimal.ZERO);
-        assertThat(savedTransaction.getAccountTo()).isNull();
+        assertThat(savedTransaction.getRelatedAccount()).isNull();
     }
 
     @Test
@@ -135,16 +135,16 @@ class TransactionJpaRepositoryTest {
         TransactionJpaEntity savedTransaction = transactionRepository.save(transaction);
 
         // 저장된 엔티티 정보 로깅
-        log.info("Saved Transaction: id={}, type={}, accountId={}, accountToId={}, amount={}, balanceAfter={}, fee={}, description={}, createdAt={}",
+        log.info("Saved Transaction: id={}, type={}, accountId={}, relatedAccountId={}, amount={}, balanceAfter={}, fee={}, description={}, createdAt={}",
                 savedTransaction.getId(), savedTransaction.getType(), savedTransaction.getAccount().getId(),
-                savedTransaction.getAccountTo().getId(), savedTransaction.getAmount(), savedTransaction.getBalanceAfter(),
+                savedTransaction.getRelatedAccount().getId(), savedTransaction.getAmount(), savedTransaction.getBalanceAfter(),
                 savedTransaction.getFee(), savedTransaction.getDescription(), savedTransaction.getCreatedAt());
 
         // then
         assertThat(savedTransaction.getId()).isNotNull();
         assertThat(savedTransaction.getType()).isEqualTo(300);
         assertThat(savedTransaction.getAccount().getId()).isEqualTo(testAccount.getId());
-        assertThat(savedTransaction.getAccountTo().getId()).isEqualTo(targetAccount.getId());
+        assertThat(savedTransaction.getRelatedAccount().getId()).isEqualTo(targetAccount.getId());
         assertThat(savedTransaction.getAmount()).isEqualTo(new BigDecimal("20000"));
         assertThat(savedTransaction.getBalanceAfter()).isEqualTo(new BigDecimal("80000"));
         assertThat(savedTransaction.getFee()).isEqualTo(new BigDecimal("200"));
@@ -168,16 +168,16 @@ class TransactionJpaRepositoryTest {
         TransactionJpaEntity savedTransaction = transactionRepository.save(transaction);
 
         // 저장된 엔티티 정보 로깅
-        log.info("Saved Transaction: id={}, type={}, accountId={}, accountFromId={}, amount={}, balanceAfter={}, fee={}, description={}, createdAt={}",
+        log.info("Saved Transaction: id={}, type={}, accountId={}, relatedAccountId={}, amount={}, balanceAfter={}, fee={}, description={}, createdAt={}",
                 savedTransaction.getId(), savedTransaction.getType(), savedTransaction.getAccount().getId(),
-                savedTransaction.getAccountTo().getId(), savedTransaction.getAmount(), savedTransaction.getBalanceAfter(),
+                savedTransaction.getRelatedAccount().getId(), savedTransaction.getAmount(), savedTransaction.getBalanceAfter(),
                 savedTransaction.getFee(), savedTransaction.getDescription(), savedTransaction.getCreatedAt());
 
         // then
         assertThat(savedTransaction.getId()).isNotNull();
         assertThat(savedTransaction.getType()).isEqualTo(400);
         assertThat(savedTransaction.getAccount().getId()).isEqualTo(targetAccount.getId());
-        assertThat(savedTransaction.getAccountTo().getId()).isEqualTo(testAccount.getId());
+        assertThat(savedTransaction.getRelatedAccount().getId()).isEqualTo(testAccount.getId());
         assertThat(savedTransaction.getAmount()).isEqualTo(new BigDecimal("20000"));
         assertThat(savedTransaction.getBalanceAfter()).isEqualTo(new BigDecimal("20000"));
         assertThat(savedTransaction.getFee()).isEqualTo(BigDecimal.ZERO);
@@ -204,9 +204,9 @@ class TransactionJpaRepositoryTest {
         List<TransactionJpaEntity> transactions = transactionRepository.findByAccountId(testAccount.getId());
 
         // 로드한 엔티티 정보 로깅
-        transactions.forEach(t -> log.info("Found Transaction: id={}, type={}, accountId={}, accountNormNo = {}, accountToId={}, amount={}, balanceAfter={}, fee={}, description={}, createdAt={}",
+        transactions.forEach(t -> log.info("Found Transaction: id={}, type={}, accountId={}, accountNormNo = {}, relatedAccountId={}, amount={}, balanceAfter={}, fee={}, description={}, createdAt={}",
                 t.getId(), t.getType(), t.getAccount().getId(), t.getAccount().getAccountNoNorm(),
-                t.getAccountTo() != null ? t.getAccountTo().getId() : null,
+                t.getRelatedAccount() != null ? t.getRelatedAccount().getId() : null,
                 t.getAmount(), t.getBalanceAfter(), t.getFee(), t.getDescription(), t.getCreatedAt()));
 
         // then
@@ -228,11 +228,11 @@ class TransactionJpaRepositoryTest {
         LocalDateTime tomorrow = now.plusDays(1);
 
         TransactionJpaEntity oldTransaction = new TransactionJpaEntity(
-                100, testAccount, null, new BigDecimal("5000"), new BigDecimal("5000"), BigDecimal.ZERO, "오래된 거래");
+                100, testAccount, null, new BigDecimal("5000"), new BigDecimal("15000"), BigDecimal.ZERO, "오래된 거래");
         oldTransaction.setCreatedAt(yesterday);
 
         TransactionJpaEntity recentTransaction = new TransactionJpaEntity(
-                200, testAccount, null, new BigDecimal("3000"), new BigDecimal("2000"), BigDecimal.ZERO, "최근 거래");
+                200, testAccount, null, new BigDecimal("3000"), new BigDecimal("12000"), BigDecimal.ZERO, "최근 거래");
         recentTransaction.setCreatedAt(now);
 
         transactionRepository.save(oldTransaction);
@@ -275,5 +275,96 @@ class TransactionJpaRepositoryTest {
 
         assertThat(targetAccountTransactions).hasSize(1);
         assertThat(targetAccountTransactions.get(0).getDescription()).isEqualTo("targetAccount 거래");
+    }
+
+    @Test
+    @DisplayName("TRANSFER_SEND에서 accountId는 출금계좌, relatedAccountId는 입금계좌를 나타낸다")
+    void transferSendAccountRole() {
+        // given
+        TransactionJpaEntity transferSend = new TransactionJpaEntity(
+                300, // TRANSFER_SEND
+                testAccount,    // 출금 계좌 (주체)
+                targetAccount,  // 입금 계좌 (연관)
+                new BigDecimal("10000"),
+                new BigDecimal("90000"),
+                new BigDecimal("100"),
+                "이체 송금"
+        );
+
+        // when
+        TransactionJpaEntity saved = transactionRepository.save(transferSend);
+
+        // then
+        assertThat(saved.getType()).isEqualTo(300);
+        assertThat(saved.getAccount().getId()).isEqualTo(testAccount.getId()); // 출금 계좌
+        assertThat(saved.getRelatedAccount().getId()).isEqualTo(targetAccount.getId()); // 입금 계좌
+    }
+
+    @Test
+    @DisplayName("TRANSFER_RECEIVE에서 accountId는 입금계좌, relatedAccountId는 출금계좌를 나타낸다")
+    void transferReceiveAccountRole() {
+        // given
+        TransactionJpaEntity transferReceive = new TransactionJpaEntity(
+                400, // TRANSFER_RECEIVE
+                targetAccount,  // 입금 계좌 (주체)
+                testAccount,    // 출금 계좌 (연관)
+                new BigDecimal("10000"),
+                new BigDecimal("10000"),
+                BigDecimal.ZERO,
+                "이체 수금"
+        );
+
+        // when
+        TransactionJpaEntity saved = transactionRepository.save(transferReceive);
+
+        // then
+        assertThat(saved.getType()).isEqualTo(400);
+        assertThat(saved.getAccount().getId()).isEqualTo(targetAccount.getId()); // 입금 계좌
+        assertThat(saved.getRelatedAccount().getId()).isEqualTo(testAccount.getId()); // 출금 계좌
+    }
+
+    @Test
+    @DisplayName("relatedAccount가 null인 경우 정상 처리된다")
+    void handleNullRelatedAccount() {
+        // given
+        TransactionJpaEntity deposit = new TransactionJpaEntity(
+                100, // DEPOSIT
+                testAccount,
+                null, // relatedAccount가 null
+                new BigDecimal("5000"),
+                new BigDecimal("15000"),
+                BigDecimal.ZERO,
+                "입금"
+        );
+
+        // when
+        TransactionJpaEntity saved = transactionRepository.save(deposit);
+
+        // then
+        assertThat(saved.getRelatedAccount()).isNull();
+        assertThat(saved.getAccount()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("Lazy Loading이 정상 동작한다")
+    void testLazyLoading() {
+        // given
+        TransactionJpaEntity transfer = new TransactionJpaEntity(
+                300, testAccount, targetAccount,
+                new BigDecimal("5000"), new BigDecimal("95000"),
+                new BigDecimal("50"), "Lazy Loading 테스트"
+        );
+        TransactionJpaEntity saved = transactionRepository.save(transfer);
+
+        // when - ID로만 조회
+        TransactionJpaEntity found = transactionRepository.findById(saved.getId()).orElseThrow();
+
+        // then - 연관 엔티티들이 Lazy Loading으로 처리되는지 확인
+        assertThat(found.getAccount()).isNotNull();
+        assertThat(found.getRelatedAccount()).isNotNull();
+
+        // 실제 데이터 접근 시 로딩 확인
+        assertThat(found.getAccount().getUser().getName()).isEqualTo("홍길동");
+        assertThat(found.getRelatedAccount().getUser().getName()).isEqualTo("김철수");
     }
 }

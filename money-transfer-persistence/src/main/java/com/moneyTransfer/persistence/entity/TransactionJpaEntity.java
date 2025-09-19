@@ -24,8 +24,8 @@ public class TransactionJpaEntity {
     private AccountJpaEntity account;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "account_to_id")
-    private AccountJpaEntity accountTo;
+    @JoinColumn(name = "related_account_id")
+    private AccountJpaEntity relatedAccount;
 
     @Column(name = "amount", nullable = false, precision = 15, scale = 2)
     private BigDecimal amount;
@@ -52,11 +52,11 @@ public class TransactionJpaEntity {
     protected TransactionJpaEntity() {}
 
     // 생성자
-    public TransactionJpaEntity(Integer type, AccountJpaEntity account, AccountJpaEntity accountTo,
+    public TransactionJpaEntity(Integer type, AccountJpaEntity account, AccountJpaEntity relatedAccount,
                                BigDecimal amount, BigDecimal balanceAfter, BigDecimal fee, String description) {
         this.type = type;
         this.account = account;
-        this.accountTo = accountTo;
+        this.relatedAccount = relatedAccount;
         this.amount = amount;
         this.balanceAfter = balanceAfter;
         this.fee = fee != null ? fee : BigDecimal.ZERO;
@@ -81,8 +81,8 @@ public class TransactionJpaEntity {
     public AccountJpaEntity getAccount() { return account; }
     public void setAccount(AccountJpaEntity account) { this.account = account; }
 
-    public AccountJpaEntity getAccountTo() { return accountTo; }
-    public void setAccountTo(AccountJpaEntity accountTo) { this.accountTo = accountTo; }
+    public AccountJpaEntity getRelatedAccount() { return relatedAccount; }
+    public void setRelatedAccount(AccountJpaEntity relatedAccount) { this.relatedAccount = relatedAccount; }
 
     public BigDecimal getAmount() { return amount; }
     public void setAmount(BigDecimal amount) { this.amount = amount; }

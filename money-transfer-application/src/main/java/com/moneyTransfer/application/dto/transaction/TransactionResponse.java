@@ -13,7 +13,7 @@ public class TransactionResponse {
 
     private final Long transactionId;
     private final Long accountId;
-    private final Long accountToId;
+    private final Long relatedAccountId;
     private final TransactionType transactionType;
     private final BigDecimal amount;
     private final BigDecimal balanceAfter;

@@ -32,32 +32,40 @@ public class TransferUseCase {
             throw new IllegalArgumentException(ErrorMessages.CANNOT_TRANSFER_TO_SAME_ACCOUNT);
         }
 
-        Account fromAccount = accountPort.findByIdWithLock(request.getFromAccountId())
-                .orElseThrow(() -> new IllegalArgumentException(ErrorMessages.ACCOUNT_NOT_FOUND));
-
-        Account toAccount = accountPort.findByIdWithLock(request.getToAccountId())
-                .orElseThrow(() -> new IllegalArgumentException(ErrorMessages.TARGET_ACCOUNT_NOT_FOUND));
-
         BigDecimal fee = calculateFee(request.getAmount());
         BigDecimal totalDeduction = request.getAmount().add(fee);
 
-        // 잔액 및 일일 한도 검증
+        // 1. 일일 한도 미리 확인 및 Lock (데드락 방지)
+        validateAndLockDailyLimit(request.getFromAccountId(), request.getAmount());
+
+        // 2. 계좌 Lock - ID 순서대로 Lock하여 데드락 방지
+        Account fromAccount, toAccount;
+        if (request.getFromAccountId() < request.getToAccountId()) {
+            fromAccount = accountPort.findByIdWithLock(request.getFromAccountId())
+                    .orElseThrow(() -> new IllegalArgumentException(ErrorMessages.ACCOUNT_NOT_FOUND));
+            toAccount = accountPort.findByIdWithLock(request.getToAccountId())
+                    .orElseThrow(() -> new IllegalArgumentException(ErrorMessages.TARGET_ACCOUNT_NOT_FOUND));
+        } else {
+            toAccount = accountPort.findByIdWithLock(request.getToAccountId())
+                    .orElseThrow(() -> new IllegalArgumentException(ErrorMessages.TARGET_ACCOUNT_NOT_FOUND));
+            fromAccount = accountPort.findByIdWithLock(request.getFromAccountId())
+                    .orElseThrow(() -> new IllegalArgumentException(ErrorMessages.ACCOUNT_NOT_FOUND));
+        }
+
+        // 3. 잔액 검증
         if (!fromAccount.canWithdraw(totalDeduction)) {
             throw new IllegalArgumentException(ErrorMessages.INSUFFICIENT_BALANCE);
         }
-        validateDailyLimit(fromAccount.getId(), request.getAmount());
 
-        // 출금 계좌에서 이체 금액 + 수수료 차감
+        // 4. 계좌 잔액 변경 (원자적 실행)
         fromAccount.withdraw(totalDeduction);
-        accountPort.save(fromAccount);
-
-        // 입금 계좌에 이체 금액 추가
         toAccount.deposit(request.getAmount());
+
+        // 5. 계좌 업데이트
+        accountPort.save(fromAccount);
         accountPort.save(toAccount);
 
-        updateDailyLimit(fromAccount.getId(), request.getAmount());
-
-        // 출금 거래 기록 (TRANSFER_SEND)
+        // 6. 거래 기록 생성 (원자적 실행)
         Transaction transferSendTransaction = Transaction.createTransferSend(
                 fromAccount.getId(),
                 toAccount.getId(),
@@ -68,7 +76,6 @@ public class TransferUseCase {
         transferSendTransaction.setBalanceAfter(fromAccount.getBalance());
         Transaction savedSendTransaction = transactionPort.save(transferSendTransaction);
 
-        // 입금 거래 기록 (TRANSFER_RECEIVE)
         Transaction transferReceiveTransaction = Transaction.createTransferReceive(
                 toAccount.getId(),
                 fromAccount.getId(),
@@ -81,7 +88,7 @@ public class TransferUseCase {
         return new TransactionResponse(
                 savedSendTransaction.getId(),
                 savedSendTransaction.getAccountId(),
-                savedSendTransaction.getAccountToId(),
+                savedSendTransaction.getRelatedAccountId(),
                 savedSendTransaction.getTransactionType(),
                 savedSendTransaction.getAmount(),
                 savedSendTransaction.getBalanceAfter(),
@@ -97,22 +104,19 @@ public class TransferUseCase {
     }
 
 
-    private void validateDailyLimit(Long accountId, BigDecimal amount) {
+    private void validateAndLockDailyLimit(Long accountId, BigDecimal amount) {
         LocalDate today = LocalDate.now();
-        DailyLimit dailyLimit = dailyLimitPort.findByAccountIdAndLimitDate(accountId, today)
+        // 미리 Lock을 걸어서 동시성 문제 방지
+        DailyLimit dailyLimit = dailyLimitPort.findByAccountIdAndLimitDateWithLock(accountId, today)
                 .orElse(DailyLimit.createNew(accountId, today));
 
+        // 한도 검증
         BigDecimal newTotalAmount = dailyLimit.getTransferUsed().add(amount);
         if (newTotalAmount.compareTo(BusinessConstants.DAILY_TRANSFER_LIMIT) > 0) {
             throw new IllegalArgumentException(ErrorMessages.DAILY_TRANSFER_LIMIT_EXCEEDED);
         }
-    }
 
-    private void updateDailyLimit(Long accountId, BigDecimal amount) {
-        LocalDate today = LocalDate.now();
-        DailyLimit dailyLimit = dailyLimitPort.findByAccountIdAndLimitDateWithLock(accountId, today)
-                .orElse(DailyLimit.createNew(accountId, today));
-
+        // 사용량 업데이트 및 저장
         DailyLimit updatedLimit = dailyLimit.addTransferUsed(amount);
         dailyLimitPort.save(updatedLimit);
     }

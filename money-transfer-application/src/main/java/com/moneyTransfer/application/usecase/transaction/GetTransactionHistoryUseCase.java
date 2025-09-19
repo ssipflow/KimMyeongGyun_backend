@@ -36,7 +36,7 @@ public class GetTransactionHistoryUseCase {
         return new TransactionResponse(
                 transaction.getId(),
                 transaction.getAccountId(),
-                transaction.getAccountToId(),
+                transaction.getRelatedAccountId(),
                 transaction.getTransactionType(),
                 transaction.getAmount(),
                 transaction.getBalanceAfter(),

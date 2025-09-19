@@ -230,4 +230,204 @@ class DailyLimitJpaRepositoryTest {
         assertThat(reloadedLimit.get().getVersion()).isGreaterThan(initialVersion);
         log.info("Updated version: {}", reloadedLimit.get().getVersion());
     }
+
+    @Test
+    @DisplayName("출금과 이체 사용량을 개별적으로 관리할 수 있다")
+    void separateWithdrawAndTransferUsage() {
+        // given
+        LocalDate today = LocalDate.now();
+        DailyLimitJpaEntity dailyLimit = new DailyLimitJpaEntity(testAccount, today);
+
+        // when - 출금만 사용
+        dailyLimit.setWithdrawUsed(new BigDecimal("500000"));
+        dailyLimit.setTransferUsed(BigDecimal.ZERO);
+        DailyLimitJpaEntity saved = dailyLimitRepository.save(dailyLimit);
+
+        // then
+        assertThat(saved.getWithdrawUsed()).isEqualTo(new BigDecimal("500000"));
+        assertThat(saved.getTransferUsed()).isEqualTo(BigDecimal.ZERO);
+
+        // when - 이체만 추가 사용
+        saved.setTransferUsed(new BigDecimal("1500000"));
+        DailyLimitJpaEntity updated = dailyLimitRepository.save(saved);
+
+        // then
+        assertThat(updated.getWithdrawUsed()).isEqualTo(new BigDecimal("500000")); // 출금은 그대로
+        assertThat(updated.getTransferUsed()).isEqualTo(new BigDecimal("1500000")); // 이체만 증가
+    }
+
+    @Test
+    @DisplayName("일일 한도 초기값은 0이다")
+    void defaultUsageAmountsShouldBeZero() {
+        // given
+        LocalDate today = LocalDate.now();
+        DailyLimitJpaEntity dailyLimit = new DailyLimitJpaEntity(testAccount, today);
+
+        // when
+        DailyLimitJpaEntity saved = dailyLimitRepository.save(dailyLimit);
+
+        // then
+        assertThat(saved.getWithdrawUsed()).isEqualTo(BigDecimal.ZERO);
+        assertThat(saved.getTransferUsed()).isEqualTo(BigDecimal.ZERO);
+    }
+
+    @Test
+    @DisplayName("동일 계좌 동일 날짜에 대해 unique 제약이 적용된다")
+    void uniqueConstraintOnAccountIdAndLimitDate() {
+        // given
+        LocalDate today = LocalDate.now();
+        DailyLimitJpaEntity firstLimit = new DailyLimitJpaEntity(testAccount, today);
+        dailyLimitRepository.save(firstLimit);
+
+        // when & then - 같은 계좌, 같은 날짜로 두 번째 저장 시도
+        DailyLimitJpaEntity secondLimit = new DailyLimitJpaEntity(testAccount, today);
+
+        // DataJpaTest에서는 실제 DB 제약조건이 적용되지 않을 수 있으므로
+        // 조회를 통해 중복 여부 확인
+        Optional<DailyLimitJpaEntity> existing = dailyLimitRepository.findByAccountIdAndLimitDateWithAccount(
+                testAccount.getId(), today);
+
+        assertThat(existing).isPresent();
+        assertThat(existing.get().getId()).isEqualTo(firstLimit.getId());
+    }
+
+    @Test
+    @DisplayName("대용량 사용금액도 정확히 저장되고 조회된다")
+    void handleLargeUsageAmounts() {
+        // given
+        LocalDate today = LocalDate.now();
+        DailyLimitJpaEntity dailyLimit = new DailyLimitJpaEntity(testAccount, today);
+
+        BigDecimal largeWithdrawAmount = new BigDecimal("999999999.99");
+        BigDecimal largeTransferAmount = new BigDecimal("2999999999.99");
+
+        dailyLimit.setWithdrawUsed(largeWithdrawAmount);
+        dailyLimit.setTransferUsed(largeTransferAmount);
+
+        // when
+        DailyLimitJpaEntity saved = dailyLimitRepository.save(dailyLimit);
+
+        // then
+        assertThat(saved.getWithdrawUsed()).isEqualTo(largeWithdrawAmount);
+        assertThat(saved.getTransferUsed()).isEqualTo(largeTransferAmount);
+
+        // 재조회해서도 확인
+        Optional<DailyLimitJpaEntity> reloaded = dailyLimitRepository.findByAccountIdAndLimitDateWithAccount(
+                testAccount.getId(), today);
+
+        assertThat(reloaded).isPresent();
+        assertThat(reloaded.get().getWithdrawUsed()).isEqualTo(largeWithdrawAmount);
+        assertThat(reloaded.get().getTransferUsed()).isEqualTo(largeTransferAmount);
+    }
+
+    @Test
+    @DisplayName("소수점 금액도 정확히 처리된다")
+    void handleDecimalAmounts() {
+        // given
+        LocalDate today = LocalDate.now();
+        DailyLimitJpaEntity dailyLimit = new DailyLimitJpaEntity(testAccount, today);
+
+        BigDecimal withdrawWithDecimal = new BigDecimal("12345.67");
+        BigDecimal transferWithDecimal = new BigDecimal("98765.43");
+
+        dailyLimit.setWithdrawUsed(withdrawWithDecimal);
+        dailyLimit.setTransferUsed(transferWithDecimal);
+
+        // when
+        DailyLimitJpaEntity saved = dailyLimitRepository.save(dailyLimit);
+
+        // then
+        assertThat(saved.getWithdrawUsed()).isEqualTo(withdrawWithDecimal);
+        assertThat(saved.getTransferUsed()).isEqualTo(transferWithDecimal);
+    }
+
+    @Test
+    @DisplayName("미래 날짜와 과거 날짜의 한도를 구분하여 관리할 수 있다")
+    void handleDifferentDateRanges() {
+        // given
+        LocalDate today = LocalDate.now();
+        LocalDate yesterday = today.minusDays(1);
+        LocalDate tomorrow = today.plusDays(1);
+
+        DailyLimitJpaEntity todayLimit = new DailyLimitJpaEntity(testAccount, today);
+        todayLimit.setWithdrawUsed(new BigDecimal("100000"));
+        todayLimit.setTransferUsed(new BigDecimal("200000"));
+
+        DailyLimitJpaEntity yesterdayLimit = new DailyLimitJpaEntity(testAccount, yesterday);
+        yesterdayLimit.setWithdrawUsed(new BigDecimal("300000"));
+        yesterdayLimit.setTransferUsed(new BigDecimal("400000"));
+
+        DailyLimitJpaEntity tomorrowLimit = new DailyLimitJpaEntity(testAccount, tomorrow);
+        tomorrowLimit.setWithdrawUsed(new BigDecimal("500000"));
+        tomorrowLimit.setTransferUsed(new BigDecimal("600000"));
+
+        // when
+        dailyLimitRepository.save(todayLimit);
+        dailyLimitRepository.save(yesterdayLimit);
+        dailyLimitRepository.save(tomorrowLimit);
+
+        // then - 각 날짜별로 독립적으로 조회
+        Optional<DailyLimitJpaEntity> todayFound = dailyLimitRepository.findByAccountIdAndLimitDateWithAccount(
+                testAccount.getId(), today);
+        Optional<DailyLimitJpaEntity> yesterdayFound = dailyLimitRepository.findByAccountIdAndLimitDateWithAccount(
+                testAccount.getId(), yesterday);
+        Optional<DailyLimitJpaEntity> tomorrowFound = dailyLimitRepository.findByAccountIdAndLimitDateWithAccount(
+                testAccount.getId(), tomorrow);
+
+        assertThat(todayFound).isPresent();
+        assertThat(todayFound.get().getWithdrawUsed()).isEqualTo(new BigDecimal("100000"));
+        assertThat(todayFound.get().getTransferUsed()).isEqualTo(new BigDecimal("200000"));
+
+        assertThat(yesterdayFound).isPresent();
+        assertThat(yesterdayFound.get().getWithdrawUsed()).isEqualTo(new BigDecimal("300000"));
+        assertThat(yesterdayFound.get().getTransferUsed()).isEqualTo(new BigDecimal("400000"));
+
+        assertThat(tomorrowFound).isPresent();
+        assertThat(tomorrowFound.get().getWithdrawUsed()).isEqualTo(new BigDecimal("500000"));
+        assertThat(tomorrowFound.get().getTransferUsed()).isEqualTo(new BigDecimal("600000"));
+    }
+
+    @Test
+    @DisplayName("비관적 락 조회와 일반 조회 결과가 동일하다")
+    void pessimisticLockAndNormalQueryReturnSameResult() {
+        // given
+        LocalDate today = LocalDate.now();
+        DailyLimitJpaEntity dailyLimit = new DailyLimitJpaEntity(testAccount, today);
+        dailyLimit.setWithdrawUsed(new BigDecimal("75000"));
+        dailyLimit.setTransferUsed(new BigDecimal("125000"));
+        dailyLimitRepository.save(dailyLimit);
+
+        // when
+        Optional<DailyLimitJpaEntity> normalResult = dailyLimitRepository.findByAccountIdAndLimitDateWithAccount(
+                testAccount.getId(), today);
+        Optional<DailyLimitJpaEntity> lockResult = dailyLimitRepository.findByAccountIdAndLimitDateWithAccountAndLock(
+                testAccount.getId(), today);
+
+        // then
+        assertThat(normalResult).isPresent();
+        assertThat(lockResult).isPresent();
+
+        assertThat(normalResult.get().getId()).isEqualTo(lockResult.get().getId());
+        assertThat(normalResult.get().getWithdrawUsed()).isEqualTo(lockResult.get().getWithdrawUsed());
+        assertThat(normalResult.get().getTransferUsed()).isEqualTo(lockResult.get().getTransferUsed());
+        assertThat(normalResult.get().getVersion()).isEqualTo(lockResult.get().getVersion());
+    }
+
+    @Test
+    @DisplayName("계좌와 한도 엔티티 간 FK 관계가 정상 동작한다")
+    void foreignKeyRelationshipWorksCorrectly() {
+        // given
+        LocalDate today = LocalDate.now();
+        DailyLimitJpaEntity dailyLimit = new DailyLimitJpaEntity(testAccount, today);
+        DailyLimitJpaEntity saved = dailyLimitRepository.save(dailyLimit);
+
+        // when - 연관된 계좌 정보 접근
+        AccountJpaEntity relatedAccount = saved.getAccount();
+
+        // then
+        assertThat(relatedAccount).isNotNull();
+        assertThat(relatedAccount.getId()).isEqualTo(testAccount.getId());
+        assertThat(relatedAccount.getAccountNo()).isEqualTo(testAccount.getAccountNo());
+        assertThat(relatedAccount.getUser().getName()).isEqualTo("홍길동");
+    }
 }

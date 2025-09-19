@@ -13,7 +13,7 @@ public class Transaction {
     private Long id;
     private TransactionType transactionType;
     private Long accountId;
-    private Long accountToId;
+    private Long relatedAccountId;
     private BigDecimal amount;
     private BigDecimal balanceAfter;
     private BigDecimal fee = BigDecimal.ZERO;
@@ -55,20 +55,20 @@ public class Transaction {
         return transaction;
     }
 
-    public static Transaction createTransferSend(Long accountId, Long accountToId,
+    public static Transaction createTransferSend(Long fromAccountId, Long toAccountId,
                                                BigDecimal amount, BigDecimal fee, String description) {
         validateBasicData(amount);
-        if (accountId == null) {
+        if (fromAccountId == null) {
             throw new IllegalArgumentException("출금 계좌 ID는 필수입니다");
         }
-        if (accountToId == null) {
+        if (toAccountId == null) {
             throw new IllegalArgumentException("입금 계좌 ID는 필수입니다");
         }
 
         Transaction transaction = new Transaction();
         transaction.transactionType = TransactionType.TRANSFER_SEND;
-        transaction.accountId = accountId;
-        transaction.accountToId = accountToId;
+        transaction.accountId = fromAccountId; // 출금 계좌가 주체
+        transaction.relatedAccountId = toAccountId; // 입금 계좌가 연관
         transaction.amount = amount;
         transaction.fee = fee != null ? fee : BigDecimal.ZERO;
         transaction.description = description != null ? description : "이체 출금";
@@ -77,20 +77,20 @@ public class Transaction {
         return transaction;
     }
 
-    public static Transaction createTransferReceive(Long accountId, Long accountFromId,
+    public static Transaction createTransferReceive(Long toAccountId, Long fromAccountId,
                                                   BigDecimal amount, String description) {
         validateBasicData(amount);
-        if (accountId == null) {
+        if (toAccountId == null) {
             throw new IllegalArgumentException("입금 계좌 ID는 필수입니다");
         }
-        if (accountFromId == null) {
+        if (fromAccountId == null) {
             throw new IllegalArgumentException("출금 계좌 ID는 필수입니다");
         }
 
         Transaction transaction = new Transaction();
         transaction.transactionType = TransactionType.TRANSFER_RECEIVE;
-        transaction.accountId = accountId;
-        transaction.accountToId = accountFromId;
+        transaction.accountId = toAccountId; // 입금 계좌가 주체
+        transaction.relatedAccountId = fromAccountId; // 출금 계좌가 연관
         transaction.amount = amount;
         transaction.fee = BigDecimal.ZERO;
         transaction.description = description != null ? description : "이체 입금";
