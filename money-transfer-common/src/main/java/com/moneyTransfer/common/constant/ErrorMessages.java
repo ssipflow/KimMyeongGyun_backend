@@ -38,6 +38,14 @@ public class ErrorMessages {
     // 동시성 제어 관련 에러 메시지
     public static final String OPTIMISTIC_LOCK_CONFLICT = "다른 사용자가 계좌를 수정 중입니다. 잠시 후 다시 시도해주세요.";
 
+    // 이체 관련 에러 메시지
+    public static final String CANNOT_TRANSFER_TO_SAME_ACCOUNT = "같은 계좌로는 이체할 수 없습니다";
+    public static final String TARGET_ACCOUNT_NOT_FOUND = "이체 대상 계좌를 찾을 수 없습니다";
+
+    // 일일 한도 관련 에러 메시지
+    public static final String DAILY_WITHDRAW_LIMIT_EXCEEDED = "일일 출금 한도를 초과했습니다";
+    public static final String DAILY_TRANSFER_LIMIT_EXCEEDED = "일일 이체 한도를 초과했습니다";
+
     private ErrorMessages() {
     }
 }

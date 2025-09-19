@@ -75,13 +75,13 @@ class JpaTransactionPortTest {
 
         // 저장된 도메인 정보 로깅
         log.info("Saved Transaction: id={}, accountId={}, type={}, amount={}, fee={}, description={}",
-                savedTransaction.getId(), savedTransaction.getAccountId(), savedTransaction.getType(),
+                savedTransaction.getId(), savedTransaction.getAccountId(), savedTransaction.getTransactionType(),
                 savedTransaction.getAmount(), savedTransaction.getFee(), savedTransaction.getDescription());
 
         // then
         assertThat(savedTransaction.getId()).isNotNull();
         assertThat(savedTransaction.getAccountId()).isEqualTo(testAccount.getId());
-        assertThat(savedTransaction.getType()).isEqualTo(TransactionType.DEPOSIT);
+        assertThat(savedTransaction.getTransactionType()).isEqualTo(TransactionType.DEPOSIT);
         assertThat(savedTransaction.getAmount()).isEqualTo(new BigDecimal("50000"));
         assertThat(savedTransaction.getFee()).isEqualTo(BigDecimal.ZERO);
         assertThat(savedTransaction.getAccountToNo()).isNull();
@@ -105,13 +105,13 @@ class JpaTransactionPortTest {
 
         // 저장된 도메인 정보 로깅
         log.info("Saved Transaction: id={}, accountId={}, type={}, amount={}, fee={}, description={}",
-                savedTransaction.getId(), savedTransaction.getAccountId(), savedTransaction.getType(),
+                savedTransaction.getId(), savedTransaction.getAccountId(), savedTransaction.getTransactionType(),
                 savedTransaction.getAmount(), savedTransaction.getFee(), savedTransaction.getDescription());
 
         // then
         assertThat(savedTransaction.getId()).isNotNull();
         assertThat(savedTransaction.getAccountId()).isEqualTo(testAccount.getId());
-        assertThat(savedTransaction.getType()).isEqualTo(TransactionType.WITHDRAW);
+        assertThat(savedTransaction.getTransactionType()).isEqualTo(TransactionType.WITHDRAW);
         assertThat(savedTransaction.getAmount()).isEqualTo(new BigDecimal("30000"));
         assertThat(savedTransaction.getFee()).isEqualTo(BigDecimal.ZERO);
         assertThat(savedTransaction.getAccountToNo()).isNull();
@@ -135,14 +135,14 @@ class JpaTransactionPortTest {
 
         // 저장된 도메인 정보 로깅
         log.info("Saved Transaction: id={}, accountId={}, type={}, accountToNo={}, amount={}, fee={}, description={}",
-                savedTransaction.getId(), savedTransaction.getAccountId(), savedTransaction.getType(),
+                savedTransaction.getId(), savedTransaction.getAccountId(), savedTransaction.getTransactionType(),
                 savedTransaction.getAccountToNo(), savedTransaction.getAmount(), savedTransaction.getFee(),
                 savedTransaction.getDescription());
 
         // then
         assertThat(savedTransaction.getId()).isNotNull();
         assertThat(savedTransaction.getAccountId()).isEqualTo(testAccount.getId());
-        assertThat(savedTransaction.getType()).isEqualTo(TransactionType.TRANSFER);
+        assertThat(savedTransaction.getTransactionType()).isEqualTo(TransactionType.TRANSFER);
         assertThat(savedTransaction.getAccountToNo()).isEqualTo("002-987654321");
         assertThat(savedTransaction.getAmount()).isEqualTo(new BigDecimal("100000"));
         assertThat(savedTransaction.getFee()).isEqualTo(new BigDecimal("1000"));
@@ -183,14 +183,14 @@ class JpaTransactionPortTest {
 
         // 조회된 도메인 정보 로깅
         transactions.forEach(t -> log.info("Found Transaction: id={}, accountId={}, type={}, amount={}, description={}",
-                t.getId(), t.getAccountId(), t.getType(), t.getAmount(), t.getDescription()));
+                t.getId(), t.getAccountId(), t.getTransactionType(), t.getAmount(), t.getDescription()));
 
         // then
         assertThat(transactions).hasSize(3);
         // 생성일 역순으로 정렬되어야 함
-        assertThat(transactions.get(0).getType()).isEqualTo(TransactionType.TRANSFER); // 가장 최근
-        assertThat(transactions.get(1).getType()).isEqualTo(TransactionType.WITHDRAW);
-        assertThat(transactions.get(2).getType()).isEqualTo(TransactionType.DEPOSIT); // 가장 오래됨
+        assertThat(transactions.get(0).getTransactionType()).isEqualTo(TransactionType.TRANSFER); // 가장 최근
+        assertThat(transactions.get(1).getTransactionType()).isEqualTo(TransactionType.WITHDRAW);
+        assertThat(transactions.get(2).getTransactionType()).isEqualTo(TransactionType.DEPOSIT); // 가장 오래됨
     }
 
     @Test
@@ -217,7 +217,7 @@ class JpaTransactionPortTest {
 
         // 조회된 도메인 정보 로깅
         transactions.forEach(t -> log.info("Found Transaction in order: id={}, type={}, description={}, createdAt={}",
-                t.getId(), t.getType(), t.getDescription(), t.getCreatedAt()));
+                t.getId(), t.getTransactionType(), t.getDescription(), t.getCreatedAt()));
 
         // then
         assertThat(transactions).hasSize(3);

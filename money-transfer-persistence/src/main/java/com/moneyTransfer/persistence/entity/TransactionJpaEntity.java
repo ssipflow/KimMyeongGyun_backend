@@ -16,18 +16,22 @@ public class TransactionJpaEntity {
     private Long id;
 
     @Column(name = "type", nullable = false)
-    private Integer type; // DEPOSIT: 100, WITHDRAW: 200, TRANSFER: 300
+    private Integer type; // DEPOSIT: 100, WITHDRAW: 200, TRANSFER_SEND: 300, TRANSFER_RECEIVE: 400
 
     // ToOne 관계 - LAZY 로딩, Fetch Join으로 조회
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "account_id", nullable = false)
     private AccountJpaEntity account;
 
-    @Column(name = "account_to_no")
-    private String accountToNo;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "account_to_id")
+    private AccountJpaEntity accountTo;
 
     @Column(name = "amount", nullable = false, precision = 15, scale = 2)
     private BigDecimal amount;
+
+    @Column(name = "balance_after", precision = 15, scale = 2)
+    private BigDecimal balanceAfter;
 
     @Column(name = "fee", nullable = false, precision = 15, scale = 2)
     private BigDecimal fee = BigDecimal.ZERO;
@@ -48,12 +52,13 @@ public class TransactionJpaEntity {
     protected TransactionJpaEntity() {}
 
     // 생성자
-    public TransactionJpaEntity(Integer type, AccountJpaEntity account, String accountToNo,
-                               BigDecimal amount, BigDecimal fee, String description) {
+    public TransactionJpaEntity(Integer type, AccountJpaEntity account, AccountJpaEntity accountTo,
+                               BigDecimal amount, BigDecimal balanceAfter, BigDecimal fee, String description) {
         this.type = type;
         this.account = account;
-        this.accountToNo = accountToNo;
+        this.accountTo = accountTo;
         this.amount = amount;
+        this.balanceAfter = balanceAfter;
         this.fee = fee != null ? fee : BigDecimal.ZERO;
         this.description = description;
         this.createdAt = LocalDateTime.now();
@@ -76,11 +81,14 @@ public class TransactionJpaEntity {
     public AccountJpaEntity getAccount() { return account; }
     public void setAccount(AccountJpaEntity account) { this.account = account; }
 
-    public String getAccountToNo() { return accountToNo; }
-    public void setAccountToNo(String accountToNo) { this.accountToNo = accountToNo; }
+    public AccountJpaEntity getAccountTo() { return accountTo; }
+    public void setAccountTo(AccountJpaEntity accountTo) { this.accountTo = accountTo; }
 
     public BigDecimal getAmount() { return amount; }
     public void setAmount(BigDecimal amount) { this.amount = amount; }
+
+    public BigDecimal getBalanceAfter() { return balanceAfter; }
+    public void setBalanceAfter(BigDecimal balanceAfter) { this.balanceAfter = balanceAfter; }
 
     public BigDecimal getFee() { return fee; }
     public void setFee(BigDecimal fee) { this.fee = fee; }

@@ -98,4 +98,12 @@ public class Account {
     public boolean isActive() {
         return AccountStatus.ACTIVATE.equals(this.status);
     }
+
+    public Account updateBalance(BigDecimal newBalance) {
+        if (newBalance == null || newBalance.compareTo(BusinessConstants.ZERO_AMOUNT) < 0) {
+            throw new IllegalArgumentException(ErrorMessages.INVALID_AMOUNT);
+        }
+        this.balance = newBalance;
+        return this;
+    }
 }

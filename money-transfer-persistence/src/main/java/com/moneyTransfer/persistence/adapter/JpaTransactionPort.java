@@ -40,11 +40,18 @@ public class JpaTransactionPort implements TransactionPort {
         AccountJpaEntity accountEntity = accountJpaRepository.findById(transaction.getAccountId())
             .orElseThrow(() -> new IllegalArgumentException(ErrorMessages.ACCOUNT_NOT_FOUND));
 
+        AccountJpaEntity accountToEntity = null;
+        if (transaction.getAccountToId() != null) {
+            accountToEntity = accountJpaRepository.findById(transaction.getAccountToId())
+                .orElseThrow(() -> new IllegalArgumentException(ErrorMessages.ACCOUNT_NOT_FOUND));
+        }
+
         TransactionJpaEntity entity = new TransactionJpaEntity(
-            mapTypeToInteger(transaction.getType()),
+            mapTypeToInteger(transaction.getTransactionType()),
             accountEntity,
-            transaction.getAccountToNo(),
+            accountToEntity,
             transaction.getAmount(),
+            transaction.getBalanceAfter(),
             transaction.getFee(),
             transaction.getDescription()
         );
@@ -88,10 +95,11 @@ public class JpaTransactionPort implements TransactionPort {
         Transaction transaction = new Transaction();
         transaction.setId(entity.getId());
         transaction.setAccountId(entity.getAccount().getId());
-        transaction.setType(mapTypeFromInteger(entity.getType()));
+        transaction.setAccountToId(entity.getAccountTo() != null ? entity.getAccountTo().getId() : null);
+        transaction.setTransactionType(mapTypeFromInteger(entity.getType()));
         transaction.setAmount(entity.getAmount());
+        transaction.setBalanceAfter(entity.getBalanceAfter());
         transaction.setFee(entity.getFee());
-        transaction.setAccountToNo(entity.getAccountToNo());
         transaction.setDescription(entity.getDescription());
         transaction.setCreatedAt(entity.getCreatedAt());
         transaction.setUpdatedAt(entity.getUpdatedAt());
@@ -102,7 +110,8 @@ public class JpaTransactionPort implements TransactionPort {
         return switch (type) {
             case DEPOSIT -> 100;
             case WITHDRAW -> 200;
-            case TRANSFER -> 300;
+            case TRANSFER_SEND -> 300;
+            case TRANSFER_RECEIVE -> 400;
         };
     }
 
@@ -110,7 +119,8 @@ public class JpaTransactionPort implements TransactionPort {
         return switch (type) {
             case 100 -> TransactionType.DEPOSIT;
             case 200 -> TransactionType.WITHDRAW;
-            case 300 -> TransactionType.TRANSFER;
+            case 300 -> TransactionType.TRANSFER_SEND;
+            case 400 -> TransactionType.TRANSFER_RECEIVE;
             default -> throw new IllegalArgumentException("Unknown transaction type: " + type);
         };
     }
