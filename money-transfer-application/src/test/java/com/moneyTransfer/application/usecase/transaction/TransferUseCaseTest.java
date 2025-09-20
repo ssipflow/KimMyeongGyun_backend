@@ -133,8 +133,10 @@ class TransferUseCaseTest {
 
         // then
         assertThat(response.getTransactionId()).isEqualTo(1L);
-        assertThat(response.getAccountId()).isEqualTo(1L);
-        assertThat(response.getRelatedAccountId()).isEqualTo(2L);
+        assertThat(response.getAccountInfo().getBankCode()).isEqualTo("001");
+        assertThat(response.getAccountInfo().getAccountNo()).isEqualTo("123-456-789");
+        assertThat(response.getRelatedAccountInfo().getBankCode()).isEqualTo("002");
+        assertThat(response.getRelatedAccountInfo().getAccountNo()).isEqualTo("987-654-321");
         assertThat(response.getTransactionType()).isEqualTo(TransactionType.TRANSFER_SEND);
         assertThat(response.getAmount()).isEqualTo(new BigDecimal("100000"));
         assertThat(response.getFee()).isEqualTo(new BigDecimal("1000"));

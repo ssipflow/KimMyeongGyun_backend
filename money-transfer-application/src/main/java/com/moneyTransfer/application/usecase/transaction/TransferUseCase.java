@@ -95,10 +95,20 @@ public class TransferUseCase {
         transferReceiveTransaction.setBalanceAfter(toAccount.getBalance());
         transactionPort.save(transferReceiveTransaction);
 
+        TransactionResponse.AccountInfo fromAccountInfo = new TransactionResponse.AccountInfo(
+                fromAccount.getBankCode(),
+                fromAccount.getAccountNo()
+        );
+
+        TransactionResponse.AccountInfo toAccountInfo = new TransactionResponse.AccountInfo(
+                toAccount.getBankCode(),
+                toAccount.getAccountNo()
+        );
+
         return new TransactionResponse(
                 savedSendTransaction.getId(),
-                savedSendTransaction.getAccountId(),
-                savedSendTransaction.getRelatedAccountId(),
+                fromAccountInfo,
+                toAccountInfo,
                 savedSendTransaction.getTransactionType(),
                 savedSendTransaction.getAmount(),
                 savedSendTransaction.getBalanceAfter(),

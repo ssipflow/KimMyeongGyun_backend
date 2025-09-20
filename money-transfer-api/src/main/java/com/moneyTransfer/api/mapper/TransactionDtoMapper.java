@@ -57,10 +57,23 @@ public class TransactionDtoMapper {
     }
 
     public TransactionApiResponse toApiResponse(TransactionResponse applicationResponse) {
+        TransactionApiResponse.AccountInfo accountInfo = new TransactionApiResponse.AccountInfo(
+                applicationResponse.getAccountInfo().getBankCode(),
+                applicationResponse.getAccountInfo().getAccountNo()
+        );
+
+        TransactionApiResponse.AccountInfo relatedAccountInfo = null;
+        if (applicationResponse.getRelatedAccountInfo() != null) {
+            relatedAccountInfo = new TransactionApiResponse.AccountInfo(
+                    applicationResponse.getRelatedAccountInfo().getBankCode(),
+                    applicationResponse.getRelatedAccountInfo().getAccountNo()
+            );
+        }
+
         return new TransactionApiResponse(
                 applicationResponse.getTransactionId(),
-                applicationResponse.getAccountId(),
-                applicationResponse.getRelatedAccountId(),
+                accountInfo,
+                relatedAccountInfo,
                 applicationResponse.getTransactionType(),
                 applicationResponse.getAmount(),
                 applicationResponse.getBalanceAfter(),
@@ -71,6 +84,15 @@ public class TransactionDtoMapper {
     }
 
     public TransactionHistoryApiResponse toApiResponse(TransactionHistoryResponse applicationResponse) {
+        TransactionHistoryApiResponse.AccountInfoApiResponse accountInfo =
+                new TransactionHistoryApiResponse.AccountInfoApiResponse(
+                        applicationResponse.getAccountInfo().getUserName(),
+                        applicationResponse.getAccountInfo().getEmail(),
+                        applicationResponse.getAccountInfo().getBalance(),
+                        applicationResponse.getAccountInfo().getBankCode(),
+                        applicationResponse.getAccountInfo().getAccountNo()
+                );
+
         List<TransactionApiResponse> transactions = applicationResponse.getTransactions()
                 .stream()
                 .map(this::toApiResponse)
@@ -86,6 +108,6 @@ public class TransactionDtoMapper {
                         applicationResponse.getPageInfo().getHasPrevious()
                 );
 
-        return new TransactionHistoryApiResponse(transactions, pageInfo);
+        return new TransactionHistoryApiResponse(accountInfo, transactions, pageInfo);
     }
 }

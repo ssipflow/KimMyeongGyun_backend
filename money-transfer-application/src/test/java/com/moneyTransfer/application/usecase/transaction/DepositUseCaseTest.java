@@ -99,7 +99,9 @@ class DepositUseCaseTest {
 
         // then
         assertThat(response.getTransactionId()).isEqualTo(1L);
-        assertThat(response.getAccountId()).isEqualTo(1L);
+        assertThat(response.getAccountInfo().getBankCode()).isEqualTo("001");
+        assertThat(response.getAccountInfo().getAccountNo()).isEqualTo("123-456-789");
+        assertThat(response.getRelatedAccountInfo()).isNull(); // 입금은 관련 계좌 없음
         assertThat(response.getTransactionType()).isEqualTo(TransactionType.DEPOSIT);
         assertThat(response.getAmount()).isEqualTo(new BigDecimal("10000"));
         assertThat(response.getBalanceAfter()).isEqualTo(new BigDecimal("60000"));

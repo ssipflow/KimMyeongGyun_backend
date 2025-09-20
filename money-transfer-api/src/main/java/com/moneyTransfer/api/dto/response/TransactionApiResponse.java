@@ -18,11 +18,11 @@ public class TransactionApiResponse {
     @Schema(description = "거래 ID", example = "1")
     private Long transactionId;
 
-    @Schema(description = "계좌 ID", example = "1")
-    private Long accountId;
+    @Schema(description = "계좌 정보")
+    private AccountInfo accountInfo;
 
-    @Schema(description = "관련 계좌 ID", example = "2")
-    private Long relatedAccountId;
+    @Schema(description = "관련 계좌 정보")
+    private AccountInfo relatedAccountInfo;
 
     @Schema(description = "거래 유형")
     private TransactionType transactionType;
@@ -42,17 +42,35 @@ public class TransactionApiResponse {
     @Schema(description = "수수료", example = "1000")
     private BigDecimal fee;
 
-    public TransactionApiResponse(Long transactionId, Long accountId, Long relatedAccountId,
+    public TransactionApiResponse(Long transactionId, AccountInfo accountInfo, AccountInfo relatedAccountInfo,
                                  TransactionType transactionType, BigDecimal amount, BigDecimal balanceAfter,
                                  String description, LocalDateTime createdAt, BigDecimal fee) {
         this.transactionId = transactionId;
-        this.accountId = accountId;
-        this.relatedAccountId = relatedAccountId;
+        this.accountInfo = accountInfo;
+        this.relatedAccountInfo = relatedAccountInfo;
         this.transactionType = transactionType;
         this.amount = amount;
         this.balanceAfter = balanceAfter;
         this.description = description;
         this.createdAt = createdAt;
         this.fee = fee;
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @Schema(description = "계좌 정보")
+    public static class AccountInfo {
+
+        @Schema(description = "은행 코드", example = "001")
+        private String bankCode;
+
+        @Schema(description = "계좌 번호", example = "123-456-789")
+        private String accountNo;
+
+        public AccountInfo(String bankCode, String accountNo) {
+            this.bankCode = bankCode;
+            this.accountNo = accountNo;
+        }
     }
 }

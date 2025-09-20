@@ -42,10 +42,15 @@ public class DepositUseCase {
 
         Transaction savedTransaction = transactionPort.save(transaction);
 
+        TransactionResponse.AccountInfo accountInfo = new TransactionResponse.AccountInfo(
+                account.getBankCode(),
+                account.getAccountNo()
+        );
+
         return new TransactionResponse(
                 savedTransaction.getId(),
-                savedTransaction.getAccountId(),
-                savedTransaction.getRelatedAccountId(),
+                accountInfo,
+                null, // 입금은 관련 계좌 없음
                 savedTransaction.getTransactionType(),
                 savedTransaction.getAmount(),
                 savedTransaction.getBalanceAfter(),

@@ -12,12 +12,19 @@ import java.time.LocalDateTime;
 public class TransactionResponse {
 
     private final Long transactionId;
-    private final Long accountId;
-    private final Long relatedAccountId;
+    private final AccountInfo accountInfo;
+    private final AccountInfo relatedAccountInfo;
     private final TransactionType transactionType;
     private final BigDecimal amount;
     private final BigDecimal balanceAfter;
     private final String description;
     private final LocalDateTime createdAt;
     private final BigDecimal fee;
+
+    @Getter
+    @RequiredArgsConstructor
+    public static class AccountInfo {
+        private final String bankCode;
+        private final String accountNo;
+    }
 }

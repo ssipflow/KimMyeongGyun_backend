@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Getter
@@ -13,15 +14,49 @@ import java.util.List;
 @Schema(description = "거래내역 조회 API 응답")
 public class TransactionHistoryApiResponse {
 
+    @Schema(description = "계좌 정보")
+    private AccountInfoApiResponse accountInfo;
+
     @Schema(description = "거래 목록")
     private List<TransactionApiResponse> transactions;
 
     @Schema(description = "페이징 정보")
     private PageInfoApiResponse pageInfo;
 
-    public TransactionHistoryApiResponse(List<TransactionApiResponse> transactions, PageInfoApiResponse pageInfo) {
+    public TransactionHistoryApiResponse(AccountInfoApiResponse accountInfo, List<TransactionApiResponse> transactions, PageInfoApiResponse pageInfo) {
+        this.accountInfo = accountInfo;
         this.transactions = transactions;
         this.pageInfo = pageInfo;
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @Schema(description = "계좌 정보")
+    public static class AccountInfoApiResponse {
+
+        @Schema(description = "사용자명", example = "홍길동")
+        private String userName;
+
+        @Schema(description = "이메일", example = "hong@example.com")
+        private String email;
+
+        @Schema(description = "계좌 잔액", example = "1000000")
+        private BigDecimal balance;
+
+        @Schema(description = "은행 코드", example = "001")
+        private String bankCode;
+
+        @Schema(description = "계좌 번호", example = "123-456-789")
+        private String accountNo;
+
+        public AccountInfoApiResponse(String userName, String email, BigDecimal balance, String bankCode, String accountNo) {
+            this.userName = userName;
+            this.email = email;
+            this.balance = balance;
+            this.bankCode = bankCode;
+            this.accountNo = accountNo;
+        }
     }
 
     @Getter
