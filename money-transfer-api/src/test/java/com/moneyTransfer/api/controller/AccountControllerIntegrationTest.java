@@ -2,6 +2,7 @@ package com.moneyTransfer.api.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.moneyTransfer.api.dto.request.CreateAccountApiRequest;
+import com.moneyTransfer.api.dto.request.DeleteAccountApiRequest;
 import com.moneyTransfer.api.dto.response.AccountApiResponse;
 import com.moneyTransfer.persistence.entity.UserJpaEntity;
 import com.moneyTransfer.persistence.repository.UserJpaRepository;
@@ -110,100 +111,59 @@ class AccountControllerIntegrationTest {
                 .andExpect(status().isBadRequest());
     }
 
-
     @Test
-    @DisplayName("계좌 조회가 성공한다")
-    void getAccount_Success() throws Exception {
-        // given - 계좌 생성
-        String createResponse = mockMvc.perform(post("/accounts")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(validRequest)))
-                .andExpect(status().isCreated())
-                .andReturn().getResponse().getContentAsString();
-
-        AccountApiResponse createdAccount = objectMapper.readValue(createResponse, AccountApiResponse.class);
-
-        // when & then
-        mockMvc.perform(get("/accounts/" + createdAccount.getId()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(createdAccount.getId()))
-                .andExpect(jsonPath("$.bankCode").value("001"))
-                .andExpect(jsonPath("$.accountNo").value("1123456789"));
-    }
-
-    @Test
-    @DisplayName("존재하지 않는 계좌 조회 시 404를 반환한다")
-    void getAccount_NotFound() throws Exception {
-        // when & then
-        mockMvc.perform(get("/accounts/99999"))
-                .andExpect(status().isNotFound());
-    }
-
-    @Test
-    @DisplayName("사용자별 계좌 목록 조회가 성공한다")
-    void getAccountsByUser_Success() throws Exception {
-        // given - 계좌 생성
-        String createResponse = mockMvc.perform(post("/accounts")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(validRequest)))
-                .andExpect(status().isCreated())
-                .andReturn().getResponse().getContentAsString();
-
-        AccountApiResponse createdAccount = objectMapper.readValue(createResponse, AccountApiResponse.class);
-
-        // when & then
-        mockMvc.perform(get("/accounts?userId=" + createdAccount.getUserId()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$[0].id").value(createdAccount.getId()));
-    }
-
-    @Test
-    @DisplayName("은행코드와 계좌번호로 계좌 조회가 성공한다")
-    void getAccountByBankCodeAndAccountNo_Success() throws Exception {
+    @DisplayName("계좌 삭제가 성공한다")
+    void deleteAccount_Success() throws Exception {
         // given - 계좌 생성
         mockMvc.perform(post("/accounts")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(validRequest)))
                 .andExpect(status().isCreated());
 
+        DeleteAccountApiRequest deleteRequest = new DeleteAccountApiRequest("001", "1123456789");
+
         // when & then
-        mockMvc.perform(get("/accounts?bankCode=001&accountNo=1123456789"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$[0].bankCode").value("001"))
-                .andExpect(jsonPath("$[0].accountNo").value("1123456789"));
+        mockMvc.perform(delete("/accounts")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(deleteRequest)))
+                .andExpect(status().isNoContent());
     }
 
     @Test
-    @DisplayName("필수 파라미터 없이 계좌 조회 시 실패한다")
-    void getAccounts_MissingParameters_Fails() throws Exception {
+    @DisplayName("존재하지 않는 계좌 삭제 시 404를 반환한다")
+    void deleteAccount_NotFound() throws Exception {
+        // given
+        DeleteAccountApiRequest deleteRequest = new DeleteAccountApiRequest("001", "9999999999");
+
         // when & then
-        mockMvc.perform(get("/accounts"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("userId 또는 (bankCode와 accountNo) 파라미터가 필요합니다"));
+        mockMvc.perform(delete("/accounts")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(deleteRequest)))
+                .andExpect(status().isNotFound());
     }
 
     @Test
-    @DisplayName("계좌 삭제가 성공한다")
-    void deleteAccount_Success() throws Exception {
-        // given - 계좌 생성
-        String createResponse = mockMvc.perform(post("/accounts")
+    @DisplayName("중복된 계좌번호로 계좌 생성 시 실패한다")
+    void createAccount_DuplicateAccountNo_Fails() throws Exception {
+        // given - 첫 번째 계좌 생성
+        mockMvc.perform(post("/accounts")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(validRequest)))
-                .andExpect(status().isCreated())
-                .andReturn().getResponse().getContentAsString();
+                .andExpect(status().isCreated());
 
-        AccountApiResponse createdAccount = objectMapper.readValue(createResponse, AccountApiResponse.class);
+        // when & then - 같은 계좌번호로 두 번째 계좌 생성 시도
+        CreateAccountApiRequest duplicateRequest = new CreateAccountApiRequest(
+            "김철수",
+            "kim@example.com",
+            "9876543210987",
+            "001",
+            "1123456789"  // 동일한 계좌번호
+        );
 
-        // when & then
-        mockMvc.perform(delete("/accounts/" + createdAccount.getId()))
-                .andExpect(status().isNoContent());
-
-        // 삭제 후 조회 시 비활성 상태 확인
-        mockMvc.perform(get("/accounts/" + createdAccount.getId()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("DEACTIVATE"));
+        mockMvc.perform(post("/accounts")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(duplicateRequest)))
+                .andExpect(status().isConflict());
     }
 
 }

@@ -2,6 +2,7 @@ package com.moneyTransfer.application.usecase.account;
 
 import com.moneyTransfer.common.constant.BusinessConstants;
 import com.moneyTransfer.common.constant.ErrorMessages;
+import com.moneyTransfer.common.util.StringNormalizer;
 import com.moneyTransfer.domain.account.Account;
 import com.moneyTransfer.domain.account.AccountPort;
 import org.springframework.dao.OptimisticLockingFailureException;
@@ -18,18 +19,24 @@ public class DeleteAccountUseCase {
         this.accountPort = accountPort;
     }
 
-    public void execute(Long accountId) {
+    public void execute(String bankCode, String accountNo) {
         try {
-            deleteAccountWithConcurrencyControl(accountId);
+            deleteAccountWithConcurrencyControl(bankCode, accountNo);
         } catch (OptimisticLockingFailureException e) {
             throw new IllegalStateException(ErrorMessages.OPTIMISTIC_LOCK_CONFLICT);
         }
     }
 
-    private void deleteAccountWithConcurrencyControl(Long accountId) {
-        Account account = accountPort.findById(accountId)
-            .orElseThrow(() -> new IllegalArgumentException(ErrorMessages.ACCOUNT_NOT_FOUND));
+    private void deleteAccountWithConcurrencyControl(String bankCode, String accountNo) {
+        // bankCode + accountNo로 계좌 조회
+        String accountNoNorm = StringNormalizer.normalizeAccountNo(accountNo);
+        Account account = accountPort.findByBankCodeAndAccountNoNorm(bankCode, accountNoNorm)
+                .orElseThrow(() -> new IllegalArgumentException(ErrorMessages.ACCOUNT_NOT_FOUND));
 
+        validateAndDeleteAccount(account);
+    }
+
+    private void validateAndDeleteAccount(Account account) {
         if (!account.isActive()) {
             throw new IllegalStateException(ErrorMessages.ACCOUNT_ALREADY_DEACTIVATED);
         }

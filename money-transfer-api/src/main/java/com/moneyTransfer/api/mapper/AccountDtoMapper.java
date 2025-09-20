@@ -1,6 +1,7 @@
 package com.moneyTransfer.api.mapper;
 
 import com.moneyTransfer.api.dto.request.CreateAccountApiRequest;
+import com.moneyTransfer.api.dto.request.DeleteAccountApiRequest;
 import com.moneyTransfer.api.dto.response.AccountApiResponse;
 import com.moneyTransfer.application.dto.account.AccountResponse;
 import com.moneyTransfer.application.dto.account.CreateAccountRequest;
