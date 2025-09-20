@@ -5,6 +5,7 @@ import com.moneyTransfer.application.dto.transaction.WithdrawRequest;
 import com.moneyTransfer.common.constant.ErrorMessages;
 import com.moneyTransfer.domain.account.Account;
 import com.moneyTransfer.domain.account.AccountPort;
+import com.moneyTransfer.domain.account.AccountStatus;
 import com.moneyTransfer.domain.dailylimit.DailyLimit;
 import com.moneyTransfer.domain.dailylimit.DailyLimitPort;
 import com.moneyTransfer.domain.transaction.Transaction;
@@ -52,6 +53,18 @@ class WithdrawUseCaseTest {
     private Transaction mockTransaction;
     private DailyLimit mockDailyLimit;
 
+    private Account createMockAccount(Long id, Long userId, String bankCode, String accountNo, BigDecimal balance) {
+        Account account = new Account();
+        account.setId(id);
+        account.setUserId(userId);
+        account.setBankCode(bankCode);
+        account.setAccountNo(accountNo);
+        account.setAccountNoNorm(accountNo.replaceAll("[-\\s]", ""));
+        account.setBalance(balance);
+        account.setStatus(AccountStatus.ACTIVATE);
+        return account;
+    }
+
     @BeforeEach
     void setUp() {
         validRequest = new WithdrawRequest(
@@ -61,14 +74,7 @@ class WithdrawUseCaseTest {
                 "ATM 출금"
         );
 
-        mockAccount = Account.createNew(
-                1L,
-                "001",
-                "123456789",
-                "123456789"
-        );
-        mockAccount.setId(1L);
-        mockAccount.setBalance(new BigDecimal("100000"));
+        mockAccount = createMockAccount(1L, 1L, "001", "123-456-789", new BigDecimal("100000"));
 
         mockTransaction = Transaction.createWithdraw(
                 1L,
@@ -103,7 +109,7 @@ class WithdrawUseCaseTest {
         TransactionResponse response = withdrawUseCase.execute(validRequest);
 
         // then
-        assertThat(response.getId()).isEqualTo(1L);
+        assertThat(response.getTransactionId()).isEqualTo(1L);
         assertThat(response.getAccountId()).isEqualTo(1L);
         assertThat(response.getTransactionType()).isEqualTo(TransactionType.WITHDRAW);
         assertThat(response.getAmount()).isEqualTo(new BigDecimal("50000"));

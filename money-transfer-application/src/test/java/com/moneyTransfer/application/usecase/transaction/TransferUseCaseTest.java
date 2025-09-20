@@ -5,6 +5,7 @@ import com.moneyTransfer.application.dto.transaction.TransferRequest;
 import com.moneyTransfer.common.constant.ErrorMessages;
 import com.moneyTransfer.domain.account.Account;
 import com.moneyTransfer.domain.account.AccountPort;
+import com.moneyTransfer.domain.account.AccountStatus;
 import com.moneyTransfer.domain.dailylimit.DailyLimit;
 import com.moneyTransfer.domain.dailylimit.DailyLimitPort;
 import com.moneyTransfer.domain.transaction.Transaction;
@@ -55,6 +56,18 @@ class TransferUseCaseTest {
     private Transaction mockReceiveTransaction;
     private DailyLimit mockDailyLimit;
 
+    private Account createMockAccount(Long id, Long userId, String bankCode, String accountNo, BigDecimal balance) {
+        Account account = new Account();
+        account.setId(id);
+        account.setUserId(userId);
+        account.setBankCode(bankCode);
+        account.setAccountNo(accountNo);
+        account.setAccountNoNorm(accountNo.replaceAll("[-\\s]", ""));
+        account.setBalance(balance);
+        account.setStatus(AccountStatus.ACTIVATE);
+        return account;
+    }
+
     @BeforeEach
     void setUp() {
         validRequest = new TransferRequest(
@@ -66,23 +79,8 @@ class TransferUseCaseTest {
                 "친구에게 이체"
         );
 
-        mockFromAccount = Account.createNew(
-                1L,
-                "001",
-                "123456789",
-                "123456789"
-        );
-        mockFromAccount.setId(1L);
-        mockFromAccount.setBalance(new BigDecimal("200000"));
-
-        mockToAccount = Account.createNew(
-                2L,
-                "002",
-                "987654321",
-                "987654321"
-        );
-        mockToAccount.setId(2L);
-        mockToAccount.setBalance(new BigDecimal("50000"));
+        mockFromAccount = createMockAccount(1L, 1L, "001", "123-456-789", new BigDecimal("200000"));
+        mockToAccount = createMockAccount(2L, 2L, "002", "987-654-321", new BigDecimal("50000"));
 
         mockSendTransaction = Transaction.createTransferSend(
                 1L,
@@ -134,7 +132,7 @@ class TransferUseCaseTest {
         TransactionResponse response = transferUseCase.execute(validRequest);
 
         // then
-        assertThat(response.getId()).isEqualTo(1L);
+        assertThat(response.getTransactionId()).isEqualTo(1L);
         assertThat(response.getAccountId()).isEqualTo(1L);
         assertThat(response.getRelatedAccountId()).isEqualTo(2L);
         assertThat(response.getTransactionType()).isEqualTo(TransactionType.TRANSFER_SEND);
@@ -281,13 +279,8 @@ class TransferUseCaseTest {
     @DisplayName("계좌 ID 순서대로 락 획득 테스트")
     void accountLockingOrder() {
         // given - fromAccount ID > toAccount ID인 경우
-        Account higherIdFromAccount = Account.createNew(2L, "002", "987654321", "987654321");
-        higherIdFromAccount.setId(2L);
-        higherIdFromAccount.setBalance(new BigDecimal("200000"));
-
-        Account lowerIdToAccount = Account.createNew(1L, "001", "123456789", "123456789");
-        lowerIdToAccount.setId(1L);
-        lowerIdToAccount.setBalance(new BigDecimal("50000"));
+        Account higherIdFromAccount = createMockAccount(2L, 2L, "002", "987-654-321", new BigDecimal("200000"));
+        Account lowerIdToAccount = createMockAccount(1L, 1L, "001", "123-456-789", new BigDecimal("50000"));
 
         TransferRequest reverseOrderRequest = new TransferRequest(
                 "002",
