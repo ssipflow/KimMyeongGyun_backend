@@ -1,5 +1,6 @@
 package com.moneyTransfer.persistence.entity;
 
+import com.moneyTransfer.common.constant.BusinessConstants;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -34,7 +35,7 @@ public class AccountJpaEntity {
     private String accountNoNorm;
     
     @Column(name = "balance", nullable = false, precision = 15, scale = 2)
-    private BigDecimal balance = BigDecimal.ZERO;
+    private BigDecimal balance = BusinessConstants.ZERO_AMOUNT;
     
     @Column(name = "status", nullable = false)
     private Integer status = 200; // ACTIVATE: 200
@@ -60,7 +61,7 @@ public class AccountJpaEntity {
         this.bankCode = bankCode;
         this.accountNo = accountNo;
         this.accountNoNorm = accountNoNorm;
-        this.balance = BigDecimal.ZERO;
+        this.balance = BusinessConstants.ZERO_AMOUNT;
         this.status = 200;
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();

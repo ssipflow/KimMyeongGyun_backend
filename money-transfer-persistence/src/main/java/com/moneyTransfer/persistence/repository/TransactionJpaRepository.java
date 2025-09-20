@@ -1,6 +1,8 @@
 package com.moneyTransfer.persistence.repository;
 
 import com.moneyTransfer.persistence.entity.TransactionJpaEntity;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -27,5 +29,23 @@ public interface TransactionJpaRepository extends JpaRepository<TransactionJpaEn
             @Param("accountId") Long accountId,
             @Param("startDate") LocalDateTime startDate,
             @Param("endDate") LocalDateTime endDate
+    );
+
+    @Query("SELECT t FROM TransactionJpaEntity t " +
+           "JOIN FETCH t.account " +
+           "WHERE t.account.id = :accountId " +
+           "ORDER BY t.createdAt DESC")
+    Page<TransactionJpaEntity> findByAccountIdWithPaging(@Param("accountId") Long accountId, Pageable pageable);
+
+    @Query("SELECT t FROM TransactionJpaEntity t " +
+           "JOIN FETCH t.account " +
+           "WHERE t.account.id = :accountId " +
+           "AND t.createdAt >= :startDate AND t.createdAt <= :endDate " +
+           "ORDER BY t.createdAt DESC")
+    Page<TransactionJpaEntity> findByAccountIdAndDateRangeWithPaging(
+            @Param("accountId") Long accountId,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate,
+            Pageable pageable
     );
 }

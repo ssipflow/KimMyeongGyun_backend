@@ -1,5 +1,6 @@
 package com.moneyTransfer.domain.transaction;
 
+import com.moneyTransfer.common.constant.BusinessConstants;
 import com.moneyTransfer.common.constant.ErrorMessages;
 import lombok.*;
 
@@ -16,7 +17,7 @@ public class Transaction {
     private Long relatedAccountId;
     private BigDecimal amount;
     private BigDecimal balanceAfter;
-    private BigDecimal fee = BigDecimal.ZERO;
+    private BigDecimal fee = BusinessConstants.ZERO_AMOUNT;
     private String description;
     private LocalDateTime updatedAt;
     private LocalDateTime createdAt;
@@ -24,15 +25,15 @@ public class Transaction {
     public static Transaction createDeposit(Long accountId, BigDecimal amount, String description) {
         validateBasicData(amount);
         if (accountId == null) {
-            throw new IllegalArgumentException("입금 계좌번호는 필수입니다");
+            throw new IllegalArgumentException(ErrorMessages.DEPOSIT_ACCOUNT_ID_REQUIRED);
         }
 
         Transaction transaction = new Transaction();
         transaction.transactionType = TransactionType.DEPOSIT;
-        transaction.accountId = accountId;
+        transaction.accountId = accountId;  // 입금 계좌가 주체
         transaction.amount = amount;
-        transaction.fee = BigDecimal.ZERO;
-        transaction.description = description != null ? description : "입금";
+        transaction.fee = BusinessConstants.ZERO_AMOUNT;
+        transaction.description = description != null ? description : BusinessConstants.DEFAULT_DEPOSIT_DESCRIPTION;
         transaction.createdAt = LocalDateTime.now();
         transaction.updatedAt = LocalDateTime.now();
         return transaction;
@@ -41,15 +42,15 @@ public class Transaction {
     public static Transaction createWithdraw(Long accountId, BigDecimal amount, String description) {
         validateBasicData(amount);
         if (accountId == null) {
-            throw new IllegalArgumentException("출금 계좌번호는 필수입니다");
+            throw new IllegalArgumentException(ErrorMessages.WITHDRAW_ACCOUNT_ID_REQUIRED);
         }
 
         Transaction transaction = new Transaction();
         transaction.transactionType = TransactionType.WITHDRAW;
-        transaction.accountId = accountId;
+        transaction.accountId = accountId;  // 출금 계좌가 주체
         transaction.amount = amount;
-        transaction.fee = BigDecimal.ZERO;
-        transaction.description = description != null ? description : "출금";
+        transaction.fee = BusinessConstants.ZERO_AMOUNT;
+        transaction.description = description != null ? description : BusinessConstants.DEFAULT_WITHDRAW_DESCRIPTION;
         transaction.createdAt = LocalDateTime.now();
         transaction.updatedAt = LocalDateTime.now();
         return transaction;
@@ -59,10 +60,10 @@ public class Transaction {
                                                BigDecimal amount, BigDecimal fee, String description) {
         validateBasicData(amount);
         if (fromAccountId == null) {
-            throw new IllegalArgumentException("출금 계좌 ID는 필수입니다");
+            throw new IllegalArgumentException(ErrorMessages.FROM_ACCOUNT_ID_REQUIRED);
         }
         if (toAccountId == null) {
-            throw new IllegalArgumentException("입금 계좌 ID는 필수입니다");
+            throw new IllegalArgumentException(ErrorMessages.TO_ACCOUNT_ID_REQUIRED);
         }
 
         Transaction transaction = new Transaction();
@@ -70,8 +71,8 @@ public class Transaction {
         transaction.accountId = fromAccountId; // 출금 계좌가 주체
         transaction.relatedAccountId = toAccountId; // 입금 계좌가 연관
         transaction.amount = amount;
-        transaction.fee = fee != null ? fee : BigDecimal.ZERO;
-        transaction.description = description != null ? description : "이체 출금";
+        transaction.fee = fee != null ? fee : BusinessConstants.ZERO_AMOUNT;
+        transaction.description = description != null ? description : BusinessConstants.DEFAULT_TRANSFER_SEND_DESCRIPTION;
         transaction.createdAt = LocalDateTime.now();
         transaction.updatedAt = LocalDateTime.now();
         return transaction;
@@ -81,26 +82,26 @@ public class Transaction {
                                                   BigDecimal amount, String description) {
         validateBasicData(amount);
         if (toAccountId == null) {
-            throw new IllegalArgumentException("입금 계좌 ID는 필수입니다");
+            throw new IllegalArgumentException(ErrorMessages.TO_ACCOUNT_ID_REQUIRED);
         }
         if (fromAccountId == null) {
-            throw new IllegalArgumentException("출금 계좌 ID는 필수입니다");
+            throw new IllegalArgumentException(ErrorMessages.FROM_ACCOUNT_ID_REQUIRED);
         }
 
         Transaction transaction = new Transaction();
         transaction.transactionType = TransactionType.TRANSFER_RECEIVE;
-        transaction.accountId = toAccountId; // 입금 계좌가 주체
-        transaction.relatedAccountId = fromAccountId; // 출금 계좌가 연관
+        transaction.accountId = toAccountId; // 송금 계좌가 주체
+        transaction.relatedAccountId = fromAccountId; // 수취 계좌가 연관
         transaction.amount = amount;
-        transaction.fee = BigDecimal.ZERO;
-        transaction.description = description != null ? description : "이체 입금";
+        transaction.fee = BusinessConstants.ZERO_AMOUNT;
+        transaction.description = description != null ? description : BusinessConstants.DEFAULT_TRANSFER_RECEIVE_DESCRIPTION;
         transaction.createdAt = LocalDateTime.now();
         transaction.updatedAt = LocalDateTime.now();
         return transaction;
     }
 
     private static void validateBasicData(BigDecimal amount) {
-        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+        if (amount == null || amount.compareTo(BusinessConstants.ZERO_AMOUNT) <= 0) {
             throw new IllegalArgumentException(ErrorMessages.INVALID_AMOUNT);
         }
     }

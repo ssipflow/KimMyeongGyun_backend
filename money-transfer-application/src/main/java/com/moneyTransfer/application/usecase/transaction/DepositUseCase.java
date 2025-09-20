@@ -3,6 +3,7 @@ package com.moneyTransfer.application.usecase.transaction;
 import com.moneyTransfer.application.dto.transaction.DepositRequest;
 import com.moneyTransfer.application.dto.transaction.TransactionResponse;
 import com.moneyTransfer.common.constant.ErrorMessages;
+import com.moneyTransfer.common.util.StringNormalizer;
 import com.moneyTransfer.domain.account.Account;
 import com.moneyTransfer.domain.account.AccountPort;
 import com.moneyTransfer.domain.transaction.Transaction;
@@ -20,7 +21,13 @@ public class DepositUseCase {
     private final TransactionPort transactionPort;
 
     public TransactionResponse execute(DepositRequest request) {
-        Account account = accountPort.findByIdWithLock(request.getAccountId())
+        // 1. bankCode + accountNo → Account 조회
+        String accountNoNorm = StringNormalizer.normalizeAccountNo(request.getAccountNo());
+        Account account = accountPort.findByBankCodeAndAccountNoNorm(request.getBankCode(), accountNoNorm)
+                .orElseThrow(() -> new IllegalArgumentException(ErrorMessages.ACCOUNT_NOT_FOUND));
+
+        // 2. 비관적 락으로 계좌 다시 조회
+        account = accountPort.findByIdWithLock(account.getId())
                 .orElseThrow(() -> new IllegalArgumentException(ErrorMessages.ACCOUNT_NOT_FOUND));
 
         account.deposit(request.getAmount());

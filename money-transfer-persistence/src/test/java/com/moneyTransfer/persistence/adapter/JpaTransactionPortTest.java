@@ -1,5 +1,7 @@
 package com.moneyTransfer.persistence.adapter;
 
+import com.moneyTransfer.domain.common.PageQuery;
+import com.moneyTransfer.domain.common.PageResult;
 import com.moneyTransfer.domain.transaction.Transaction;
 import com.moneyTransfer.domain.transaction.TransactionType;
 import com.moneyTransfer.persistence.entity.AccountJpaEntity;
@@ -152,14 +154,14 @@ class JpaTransactionPortTest {
     }
 
     @Test
-    @DisplayName("이체 수금 거래를 저장할 수 있다")
+    @DisplayName("이체 수취 거래를 저장할 수 있다")
     void saveTransferReceiveTransaction() {
         // given
         Transaction transferReceive = Transaction.createTransferReceive(
                 targetAccount.getId(),
                 testAccount.getId(),
                 new BigDecimal("100000"),
-                "홍길동으로부터 이체 수금"
+                "홍길동으로부터 이체 수취"
         );
         transferReceive.setBalanceAfter(new BigDecimal("600000"));
 
@@ -180,7 +182,7 @@ class JpaTransactionPortTest {
         assertThat(savedTransaction.getAmount()).isEqualTo(new BigDecimal("100000"));
         assertThat(savedTransaction.getBalanceAfter()).isEqualTo(new BigDecimal("600000"));
         assertThat(savedTransaction.getFee()).isEqualTo(BigDecimal.ZERO);
-        assertThat(savedTransaction.getDescription()).isEqualTo("홍길동으로부터 이체 수금");
+        assertThat(savedTransaction.getDescription()).isEqualTo("홍길동으로부터 이체 수취");
     }
 
     @Test
@@ -206,25 +208,29 @@ class JpaTransactionPortTest {
         Transaction deposit = Transaction.createDeposit(testAccount.getId(), new BigDecimal("50000"), "입금");
         Transaction withdraw = Transaction.createWithdraw(testAccount.getId(), new BigDecimal("20000"), "출금");
         Transaction transferSend = Transaction.createTransferSend(testAccount.getId(), targetAccount.getId(),
-                new BigDecimal("30000"), new BigDecimal("300"), "이체");
+                new BigDecimal("30000"), new BigDecimal("300"), "송금");
+        Transaction transferReceive = Transaction.createTransferReceive(testAccount.getId(), targetAccount.getId(),
+                new BigDecimal("30000"), "수취");
 
         transactionPort.save(deposit);
         transactionPort.save(withdraw);
         transactionPort.save(transferSend);
+        transactionPort.save(transferReceive);
 
         // when
         List<Transaction> transactions = transactionPort.findByAccountId(testAccount.getId());
 
         // 조회된 도메인 정보 로깅
-        transactions.forEach(t -> log.info("Found Transaction: id={}, accountId={}, type={}, amount={}, description={}",
-                t.getId(), t.getAccountId(), t.getTransactionType(), t.getAmount(), t.getDescription()));
+        transactions.forEach(t -> log.info("Found Transaction: id={}, accountId={}, relatedAccountId = {}, type={}, amount={}, description={}",
+                t.getId(), t.getAccountId(), t.getRelatedAccountId(), t.getTransactionType(), t.getAmount(), t.getDescription()));
 
         // then
-        assertThat(transactions).hasSize(3);
+        assertThat(transactions).hasSize(4);
         // 생성일 역순으로 정렬되어야 함
-        assertThat(transactions.get(0).getTransactionType()).isEqualTo(TransactionType.TRANSFER_SEND); // 가장 최근
-        assertThat(transactions.get(1).getTransactionType()).isEqualTo(TransactionType.WITHDRAW);
-        assertThat(transactions.get(2).getTransactionType()).isEqualTo(TransactionType.DEPOSIT); // 가장 오래됨
+        assertThat(transactions.get(0).getTransactionType()).isEqualTo(TransactionType.TRANSFER_RECEIVE); // 가장 최근
+        assertThat(transactions.get(1).getTransactionType()).isEqualTo(TransactionType.TRANSFER_SEND);
+        assertThat(transactions.get(2).getTransactionType()).isEqualTo(TransactionType.WITHDRAW);
+        assertThat(transactions.get(3).getTransactionType()).isEqualTo(TransactionType.DEPOSIT); // 가장 오래됨
     }
 
     @Test
@@ -463,5 +469,298 @@ class JpaTransactionPortTest {
         // then
         assertThat(transactions).hasSize(100);
         assertThat(endTime - startTime).isLessThan(1000); // 1초 미만
+    }
+
+    @Test
+    @DisplayName("페이징으로 거래내역을 조회할 수 있다")
+    void findByAccountIdWithPaging() {
+        // given - 7개의 거래 생성
+        for (int i = 1; i <= 7; i++) {
+            Transaction transaction = Transaction.createDeposit(
+                    testAccount.getId(),
+                    new BigDecimal(String.valueOf(i * 1000)),
+                    "페이징 테스트 " + i
+            );
+            transaction.setBalanceAfter(new BigDecimal(String.valueOf(i * 1000)));
+            transactionPort.save(transaction);
+        }
+
+        // when - 첫 번째 페이지 (0페이지, 크기 3)
+        PageQuery pageQuery = PageQuery.of(0, 3);
+        PageResult<Transaction> firstPage = transactionPort.findByAccountIdWithPaging(testAccount.getId(), pageQuery);
+
+        // 조회된 도메인 정보 로깅
+        log.info("First Page - Total: {}, TotalPages: {}, PageNumber: {}, PageSize: {}",
+                firstPage.getTotalElements(), firstPage.getTotalPages(), firstPage.getPageNumber(), firstPage.getPageSize());
+        firstPage.getContent().forEach(t -> log.info("Page Content: id={}, description={}, createdAt={}",
+                t.getId(), t.getDescription(), t.getCreatedAt()));
+
+        // then
+        assertThat(firstPage.getTotalElements()).isEqualTo(7);
+        assertThat(firstPage.getTotalPages()).isEqualTo(3); // 7개를 3개씩 나누면 3페이지
+        assertThat(firstPage.getPageNumber()).isEqualTo(0);
+        assertThat(firstPage.getPageSize()).isEqualTo(3);
+        assertThat(firstPage.getContent()).hasSize(3);
+        assertThat(firstPage.hasNext()).isTrue();
+        assertThat(firstPage.hasPrevious()).isFalse();
+
+        // 생성일 역순으로 정렬되어야 함 (가장 최근 거래가 먼저)
+        assertThat(firstPage.getContent().get(0).getDescription()).isEqualTo("페이징 테스트 7");
+        assertThat(firstPage.getContent().get(1).getDescription()).isEqualTo("페이징 테스트 6");
+        assertThat(firstPage.getContent().get(2).getDescription()).isEqualTo("페이징 테스트 5");
+
+        // when - 두 번째 페이지 (1페이지, 크기 3)
+        PageQuery secondPageQuery = PageQuery.of(1, 3);
+        PageResult<Transaction> secondPage = transactionPort.findByAccountIdWithPaging(testAccount.getId(), secondPageQuery);
+
+        log.info("Second Page - Total: {}, TotalPages: {}, PageNumber: {}, PageSize: {}",
+                secondPage.getTotalElements(), secondPage.getTotalPages(), secondPage.getPageNumber(), secondPage.getPageSize());
+        secondPage.getContent().forEach(t -> log.info("Page Content: id={}, description={}, createdAt={}",
+                t.getId(), t.getDescription(), t.getCreatedAt()));
+
+        // then
+        assertThat(secondPage.getTotalElements()).isEqualTo(7);
+        assertThat(secondPage.getTotalPages()).isEqualTo(3);
+        assertThat(secondPage.getPageNumber()).isEqualTo(1);
+        assertThat(secondPage.getPageSize()).isEqualTo(3);
+        assertThat(secondPage.getContent()).hasSize(3);
+        assertThat(secondPage.hasNext()).isTrue();
+        assertThat(secondPage.hasPrevious()).isTrue();
+
+        assertThat(secondPage.getContent().get(0).getDescription()).isEqualTo("페이징 테스트 4");
+        assertThat(secondPage.getContent().get(1).getDescription()).isEqualTo("페이징 테스트 3");
+        assertThat(secondPage.getContent().get(2).getDescription()).isEqualTo("페이징 테스트 2");
+
+        // when - 마지막 페이지 (2페이지, 크기 3)
+        PageQuery lastPageQuery = PageQuery.of(2, 3);
+        PageResult<Transaction> lastPage = transactionPort.findByAccountIdWithPaging(testAccount.getId(), lastPageQuery);
+
+        log.info("Last Page - Total: {}, TotalPages: {}, PageNumber: {}, PageSize: {}",
+                lastPage.getTotalElements(), lastPage.getTotalPages(), lastPage.getPageNumber(), lastPage.getPageSize());
+        lastPage.getContent().forEach(t -> log.info("Page Content: id={}, description={}, createdAt={}",
+                t.getId(), t.getDescription(), t.getCreatedAt()));
+
+        // then
+        assertThat(lastPage.getTotalElements()).isEqualTo(7);
+        assertThat(lastPage.getTotalPages()).isEqualTo(3);
+        assertThat(lastPage.getPageNumber()).isEqualTo(2);
+        assertThat(lastPage.getPageSize()).isEqualTo(3);
+        assertThat(lastPage.getContent()).hasSize(1); // 마지막 페이지는 1개만
+        assertThat(lastPage.hasNext()).isFalse();
+        assertThat(lastPage.hasPrevious()).isTrue();
+
+        assertThat(lastPage.getContent().get(0).getDescription()).isEqualTo("페이징 테스트 1");
+    }
+
+    @Test
+    @DisplayName("날짜 범위와 페이징으로 거래내역을 조회할 수 있다")
+    void findByAccountIdAndDateRangeWithPaging() {
+        // given
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime yesterday = now.minusDays(1);
+        LocalDateTime tomorrow = now.plusDays(1);
+
+        // 어제 거래 3개
+        for (int i = 1; i <= 3; i++) {
+            Transaction oldTransaction = Transaction.createDeposit(
+                    testAccount.getId(),
+                    new BigDecimal(String.valueOf(i * 1000)),
+                    "어제 거래 " + i
+            );
+            oldTransaction.setBalanceAfter(new BigDecimal(String.valueOf(i * 1000)));
+            Transaction saved = transactionPort.save(oldTransaction);
+
+            // 생성일을 어제로 수정
+            final int minuteOffset = i * 10;
+            transactionJpaRepository.findById(saved.getId()).ifPresent(entity -> {
+                entity.setCreatedAt(yesterday.plusMinutes(minuteOffset));
+                transactionJpaRepository.save(entity);
+            });
+        }
+
+        // 오늘 거래 5개
+        for (int i = 1; i <= 5; i++) {
+            Transaction todayTransaction = Transaction.createDeposit(
+                    testAccount.getId(),
+                    new BigDecimal(String.valueOf(i * 2000)),
+                    "오늘 거래 " + i
+            );
+            todayTransaction.setBalanceAfter(new BigDecimal(String.valueOf(i * 2000)));
+            transactionPort.save(todayTransaction);
+        }
+
+        // when - 오늘 거래만 페이징 조회 (0페이지, 크기 2)
+        PageQuery pageQuery = PageQuery.of(0, 2);
+        PageResult<Transaction> todayPage = transactionPort.findByAccountIdAndDateRangeWithPaging(
+                testAccount.getId(), now.minusHours(1), tomorrow, pageQuery);
+
+        // 조회된 도메인 정보 로깅
+        log.info("Today Page - Total: {}, TotalPages: {}, PageNumber: {}, PageSize: {}",
+                todayPage.getTotalElements(), todayPage.getTotalPages(), todayPage.getPageNumber(), todayPage.getPageSize());
+        todayPage.getContent().forEach(t -> log.info("Today Page Content: id={}, description={}, createdAt={}",
+                t.getId(), t.getDescription(), t.getCreatedAt()));
+
+        // then
+        assertThat(todayPage.getTotalElements()).isEqualTo(5); // 오늘 거래만
+        assertThat(todayPage.getTotalPages()).isEqualTo(3); // 5개를 2개씩 나누면 3페이지
+        assertThat(todayPage.getPageNumber()).isEqualTo(0);
+        assertThat(todayPage.getPageSize()).isEqualTo(2);
+        assertThat(todayPage.getContent()).hasSize(2);
+        assertThat(todayPage.hasNext()).isTrue();
+        assertThat(todayPage.hasPrevious()).isFalse();
+
+        // 생성일 역순으로 정렬되어야 함 (가장 최근 거래가 먼저)
+        assertThat(todayPage.getContent().get(0).getDescription()).isEqualTo("오늘 거래 5");
+        assertThat(todayPage.getContent().get(1).getDescription()).isEqualTo("오늘 거래 4");
+
+        // when - 두 번째 페이지 (1페이지, 크기 2)
+        PageQuery secondPageQuery = PageQuery.of(1, 2);
+        PageResult<Transaction> secondPage = transactionPort.findByAccountIdAndDateRangeWithPaging(
+                testAccount.getId(), now.minusHours(1), tomorrow, secondPageQuery);
+
+        log.info("Second Today Page - Total: {}, TotalPages: {}, PageNumber: {}, PageSize: {}",
+                secondPage.getTotalElements(), secondPage.getTotalPages(), secondPage.getPageNumber(), secondPage.getPageSize());
+        secondPage.getContent().forEach(t -> log.info("Second Page Content: id={}, description={}, createdAt={}",
+                t.getId(), t.getDescription(), t.getCreatedAt()));
+
+        // then
+        assertThat(secondPage.getTotalElements()).isEqualTo(5);
+        assertThat(secondPage.getTotalPages()).isEqualTo(3);
+        assertThat(secondPage.getPageNumber()).isEqualTo(1);
+        assertThat(secondPage.getPageSize()).isEqualTo(2);
+        assertThat(secondPage.getContent()).hasSize(2);
+        assertThat(secondPage.hasNext()).isTrue();
+        assertThat(secondPage.hasPrevious()).isTrue();
+
+        assertThat(secondPage.getContent().get(0).getDescription()).isEqualTo("오늘 거래 3");
+        assertThat(secondPage.getContent().get(1).getDescription()).isEqualTo("오늘 거래 2");
+
+        // when - 마지막 페이지 (2페이지, 크기 2)
+        PageQuery lastPageQuery = PageQuery.of(2, 2);
+        PageResult<Transaction> lastPage = transactionPort.findByAccountIdAndDateRangeWithPaging(
+                testAccount.getId(), now.minusHours(1), tomorrow, lastPageQuery);
+
+        log.info("Last Today Page - Total: {}, TotalPages: {}, PageNumber: {}, PageSize: {}",
+                lastPage.getTotalElements(), lastPage.getTotalPages(), lastPage.getPageNumber(), lastPage.getPageSize());
+        lastPage.getContent().forEach(t -> log.info("Last Page Content: id={}, description={}, createdAt={}",
+                t.getId(), t.getDescription(), t.getCreatedAt()));
+
+        // then
+        assertThat(lastPage.getTotalElements()).isEqualTo(5);
+        assertThat(lastPage.getTotalPages()).isEqualTo(3);
+        assertThat(lastPage.getPageNumber()).isEqualTo(2);
+        assertThat(lastPage.getPageSize()).isEqualTo(2);
+        assertThat(lastPage.getContent()).hasSize(1); // 마지막 페이지는 1개만
+        assertThat(lastPage.hasNext()).isFalse();
+        assertThat(lastPage.hasPrevious()).isTrue();
+
+        assertThat(lastPage.getContent().get(0).getDescription()).isEqualTo("오늘 거래 1");
+    }
+
+    @Test
+    @DisplayName("빈 페이지도 정상적으로 처리된다")
+    void handleEmptyPageResult() {
+        // given - 거래내역이 없는 상태
+
+        // when
+        PageQuery pageQuery = PageQuery.of(0, 10);
+        PageResult<Transaction> emptyPage = transactionPort.findByAccountIdWithPaging(testAccount.getId(), pageQuery);
+
+        log.info("Empty Page - Total: {}, TotalPages: {}, PageNumber: {}, PageSize: {}",
+                emptyPage.getTotalElements(), emptyPage.getTotalPages(), emptyPage.getPageNumber(), emptyPage.getPageSize());
+
+        // then
+        assertThat(emptyPage.getTotalElements()).isEqualTo(0);
+        assertThat(emptyPage.getTotalPages()).isEqualTo(0);
+        assertThat(emptyPage.getPageNumber()).isEqualTo(0);
+        assertThat(emptyPage.getPageSize()).isEqualTo(10);
+        assertThat(emptyPage.getContent()).isEmpty();
+        assertThat(emptyPage.hasNext()).isFalse();
+        assertThat(emptyPage.hasPrevious()).isFalse();
+        assertThat(emptyPage.isEmpty()).isTrue();
+    }
+
+    @Test
+    @DisplayName("페이지 범위를 벗어난 경우도 정상적으로 처리된다")
+    void handleOutOfRangePageResult() {
+        // given - 1개의 거래만 생성
+        Transaction transaction = Transaction.createDeposit(
+                testAccount.getId(),
+                new BigDecimal("1000"),
+                "범위 초과 테스트"
+        );
+        transaction.setBalanceAfter(new BigDecimal("1000"));
+        transactionPort.save(transaction);
+
+        // when - 2페이지 요청 (존재하지 않는 페이지)
+        PageQuery pageQuery = PageQuery.of(1, 10);
+        PageResult<Transaction> outOfRangePage = transactionPort.findByAccountIdWithPaging(testAccount.getId(), pageQuery);
+
+        log.info("Out of Range Page - Total: {}, TotalPages: {}, PageNumber: {}, PageSize: {}",
+                outOfRangePage.getTotalElements(), outOfRangePage.getTotalPages(), outOfRangePage.getPageNumber(), outOfRangePage.getPageSize());
+
+        // then
+        assertThat(outOfRangePage.getTotalElements()).isEqualTo(1);
+        assertThat(outOfRangePage.getTotalPages()).isEqualTo(1);
+        assertThat(outOfRangePage.getPageNumber()).isEqualTo(1); // 요청한 페이지 번호
+        assertThat(outOfRangePage.getPageSize()).isEqualTo(10);
+        assertThat(outOfRangePage.getContent()).isEmpty(); // 범위를 벗어나므로 빈 리스트
+        assertThat(outOfRangePage.hasNext()).isFalse();
+        assertThat(outOfRangePage.hasPrevious()).isTrue();
+        assertThat(outOfRangePage.isEmpty()).isTrue();
+    }
+
+    @Test
+    @DisplayName("페이징 과정에서 도메인 객체 매핑이 정확히 동작한다")
+    void testPagingDomainMapping() {
+        // given - 다양한 유형의 거래 생성
+        Transaction deposit = Transaction.createDeposit(testAccount.getId(), new BigDecimal("10000"), "입금");
+        deposit.setBalanceAfter(new BigDecimal("10000"));
+        transactionPort.save(deposit);
+
+        Transaction withdraw = Transaction.createWithdraw(testAccount.getId(), new BigDecimal("5000"), "출금");
+        withdraw.setBalanceAfter(new BigDecimal("5000"));
+        transactionPort.save(withdraw);
+
+        Transaction transferSend = Transaction.createTransferSend(
+                testAccount.getId(), targetAccount.getId(),
+                new BigDecimal("3000"), new BigDecimal("30"), "이체 송금");
+        transferSend.setBalanceAfter(new BigDecimal("2000"));
+        transactionPort.save(transferSend);
+
+        Transaction transferReceive = Transaction.createTransferReceive(
+                testAccount.getId(), targetAccount.getId(),
+                new BigDecimal("2000"), "이체 수취");
+        transferReceive.setBalanceAfter(new BigDecimal("4000"));
+        transactionPort.save(transferReceive);
+
+        // when
+        PageQuery pageQuery = PageQuery.of(0, 2);
+        PageResult<Transaction> page = transactionPort.findByAccountIdWithPaging(testAccount.getId(), pageQuery);
+
+        // then - 도메인 객체가 정확히 매핑되었는지 검증
+        assertThat(page.getContent()).hasSize(2);
+
+        Transaction firstTransaction = page.getContent().get(0);
+        assertThat(firstTransaction.getId()).isNotNull();
+        assertThat(firstTransaction.getAccountId()).isEqualTo(testAccount.getId());
+        assertThat(firstTransaction.getTransactionType()).isNotNull();
+        assertThat(firstTransaction.getAmount()).isNotNull();
+        assertThat(firstTransaction.getBalanceAfter()).isNotNull();
+        assertThat(firstTransaction.getFee()).isNotNull();
+        assertThat(firstTransaction.getDescription()).isNotNull();
+        assertThat(firstTransaction.getCreatedAt()).isNotNull();
+        assertThat(firstTransaction.getUpdatedAt()).isNotNull();
+
+        // 관련 계좌가 있는 경우 확인
+        if (firstTransaction.getTransactionType() == TransactionType.TRANSFER_SEND ||
+            firstTransaction.getTransactionType() == TransactionType.TRANSFER_RECEIVE) {
+            assertThat(firstTransaction.getRelatedAccountId()).isNotNull();
+        }
+
+        log.info("First Paged Transaction: id={}, type={}, accountId={}, relatedAccountId={}, amount={}, balanceAfter={}, fee={}, description={}",
+                firstTransaction.getId(), firstTransaction.getTransactionType(), firstTransaction.getAccountId(),
+                firstTransaction.getRelatedAccountId(), firstTransaction.getAmount(), firstTransaction.getBalanceAfter(),
+                firstTransaction.getFee(), firstTransaction.getDescription());
     }
 }

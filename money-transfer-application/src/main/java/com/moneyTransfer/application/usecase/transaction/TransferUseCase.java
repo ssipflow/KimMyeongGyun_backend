@@ -4,6 +4,7 @@ import com.moneyTransfer.application.dto.transaction.TransactionResponse;
 import com.moneyTransfer.application.dto.transaction.TransferRequest;
 import com.moneyTransfer.common.constant.BusinessConstants;
 import com.moneyTransfer.common.constant.ErrorMessages;
+import com.moneyTransfer.common.util.StringNormalizer;
 import com.moneyTransfer.domain.account.Account;
 import com.moneyTransfer.domain.account.AccountPort;
 import com.moneyTransfer.domain.dailylimit.DailyLimit;
@@ -28,44 +29,53 @@ public class TransferUseCase {
     private final DailyLimitPort dailyLimitPort;
 
     public TransactionResponse execute(TransferRequest request) {
-        if (request.getFromAccountId().equals(request.getToAccountId())) {
+        // 1. bankCode + accountNo → Account 조회
+        String fromAccountNoNorm = StringNormalizer.normalizeAccountNo(request.getFromAccountNo());
+        String toAccountNoNorm = StringNormalizer.normalizeAccountNo(request.getToAccountNo());
+
+        Account fromAccount = accountPort.findByBankCodeAndAccountNoNorm(request.getFromBankCode(), fromAccountNoNorm)
+                .orElseThrow(() -> new IllegalArgumentException(ErrorMessages.ACCOUNT_NOT_FOUND));
+        Account toAccount = accountPort.findByBankCodeAndAccountNoNorm(request.getToBankCode(), toAccountNoNorm)
+                .orElseThrow(() -> new IllegalArgumentException(ErrorMessages.TARGET_ACCOUNT_NOT_FOUND));
+
+        // 2. 동일 계좌 체크
+        if (fromAccount.getId().equals(toAccount.getId())) {
             throw new IllegalArgumentException(ErrorMessages.CANNOT_TRANSFER_TO_SAME_ACCOUNT);
         }
 
         BigDecimal fee = calculateFee(request.getAmount());
         BigDecimal totalDeduction = request.getAmount().add(fee);
 
-        // 1. 일일 한도 미리 확인 및 Lock (데드락 방지)
-        validateAndLockDailyLimit(request.getFromAccountId(), request.getAmount());
+        // 3. 일일 한도 미리 확인 및 Lock (데드락 방지)
+        validateAndLockDailyLimit(fromAccount.getId(), request.getAmount());
 
-        // 2. 계좌 Lock - ID 순서대로 Lock하여 데드락 방지
-        Account fromAccount, toAccount;
-        if (request.getFromAccountId() < request.getToAccountId()) {
-            fromAccount = accountPort.findByIdWithLock(request.getFromAccountId())
+        // 4. 계좌 Lock - ID 순서대로 Lock하여 데드락 방지
+        if (fromAccount.getId() < toAccount.getId()) {
+            fromAccount = accountPort.findByIdWithLock(fromAccount.getId())
                     .orElseThrow(() -> new IllegalArgumentException(ErrorMessages.ACCOUNT_NOT_FOUND));
-            toAccount = accountPort.findByIdWithLock(request.getToAccountId())
+            toAccount = accountPort.findByIdWithLock(toAccount.getId())
                     .orElseThrow(() -> new IllegalArgumentException(ErrorMessages.TARGET_ACCOUNT_NOT_FOUND));
         } else {
-            toAccount = accountPort.findByIdWithLock(request.getToAccountId())
+            toAccount = accountPort.findByIdWithLock(toAccount.getId())
                     .orElseThrow(() -> new IllegalArgumentException(ErrorMessages.TARGET_ACCOUNT_NOT_FOUND));
-            fromAccount = accountPort.findByIdWithLock(request.getFromAccountId())
+            fromAccount = accountPort.findByIdWithLock(fromAccount.getId())
                     .orElseThrow(() -> new IllegalArgumentException(ErrorMessages.ACCOUNT_NOT_FOUND));
         }
 
-        // 3. 잔액 검증
+        // 5. 잔액 검증
         if (!fromAccount.canWithdraw(totalDeduction)) {
             throw new IllegalArgumentException(ErrorMessages.INSUFFICIENT_BALANCE);
         }
 
-        // 4. 계좌 잔액 변경 (원자적 실행)
+        // 6. 계좌 잔액 변경 (원자적 실행)
         fromAccount.withdraw(totalDeduction);
         toAccount.deposit(request.getAmount());
 
-        // 5. 계좌 업데이트
+        // 7. 계좌 업데이트
         accountPort.save(fromAccount);
         accountPort.save(toAccount);
 
-        // 6. 거래 기록 생성 (원자적 실행)
+        // 8. 거래 기록 생성 (원자적 실행)
         Transaction transferSendTransaction = Transaction.createTransferSend(
                 fromAccount.getId(),
                 toAccount.getId(),

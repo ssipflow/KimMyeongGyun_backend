@@ -27,6 +27,10 @@ public class ErrorMessages {
     public static final String INSUFFICIENT_BALANCE = "잔액이 부족합니다";
     public static final String INACTIVE_ACCOUNT_DEPOSIT = "비활성 계좌에는 입금할 수 없습니다";
     public static final String INACTIVE_ACCOUNT_WITHDRAW = "비활성 계좌에서는 출금할 수 없습니다";
+    public static final String DEPOSIT_ACCOUNT_ID_REQUIRED = "입금 계좌번호는 필수입니다";
+    public static final String WITHDRAW_ACCOUNT_ID_REQUIRED = "출금 계좌번호는 필수입니다";
+    public static final String FROM_ACCOUNT_ID_REQUIRED = "출금 계좌 ID는 필수입니다";
+    public static final String TO_ACCOUNT_ID_REQUIRED = "입금 계좌 ID는 필수입니다";
 
     // User 일관성 검증 에러 메시지
     public static final String USER_NAME_MISMATCH = "제공된 사용자명이 기존 정보와 일치하지 않습니다";
@@ -45,6 +49,10 @@ public class ErrorMessages {
     // 일일 한도 관련 에러 메시지
     public static final String DAILY_WITHDRAW_LIMIT_EXCEEDED = "일일 출금 한도를 초과했습니다";
     public static final String DAILY_TRANSFER_LIMIT_EXCEEDED = "일일 이체 한도를 초과했습니다";
+    public static final String ACCOUNT_ID_REQUIRED = "계좌 ID는 필수입니다";
+    public static final String LIMIT_DATE_REQUIRED = "날짜는 필수입니다";
+    public static final String WITHDRAW_AMOUNT_MUST_BE_POSITIVE = "출금 금액은 0보다 커야 합니다";
+    public static final String TRANSFER_AMOUNT_MUST_BE_POSITIVE = "이체 금액은 0보다 커야 합니다";
 
     private ErrorMessages() {
     }

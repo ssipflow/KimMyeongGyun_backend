@@ -1,16 +1,16 @@
 package com.moneyTransfer.application.dto.transaction;
 
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
-import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Getter
 @RequiredArgsConstructor
-public class WithdrawRequest {
+public class GetTransactionHistoryRequest {
 
     @NotBlank
     private final String bankCode;
@@ -19,8 +19,14 @@ public class WithdrawRequest {
     private final String accountNo;
 
     @NotNull
-    @Positive
-    private final BigDecimal amount;
+    @Min(0)
+    private final Integer page;
 
-    private final String description;
+    @NotNull
+    @Min(1)
+    private final Integer size;
+
+    private final LocalDateTime startDate;
+
+    private final LocalDateTime endDate;
 }

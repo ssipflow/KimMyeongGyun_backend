@@ -1,6 +1,8 @@
 package com.moneyTransfer.persistence.adapter;
 
 import com.moneyTransfer.common.constant.ErrorMessages;
+import com.moneyTransfer.domain.common.PageResult;
+import com.moneyTransfer.domain.common.PageQuery;
 import com.moneyTransfer.domain.transaction.Transaction;
 import com.moneyTransfer.domain.transaction.TransactionPort;
 import com.moneyTransfer.domain.transaction.TransactionType;
@@ -8,6 +10,9 @@ import com.moneyTransfer.persistence.entity.AccountJpaEntity;
 import com.moneyTransfer.persistence.entity.TransactionJpaEntity;
 import com.moneyTransfer.persistence.repository.AccountJpaRepository;
 import com.moneyTransfer.persistence.repository.TransactionJpaRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -89,6 +94,52 @@ public class JpaTransactionPort implements TransactionPort {
             .stream()
             .map(this::mapToDomain)
             .collect(Collectors.toList());
+    }
+
+    @Override
+    public PageResult<Transaction> findByAccountIdWithPaging(Long accountId, PageQuery pageQuery) {
+        // Spring Data JPA Pageable로 변환
+        Pageable pageable = PageRequest.of(pageQuery.getPage(), pageQuery.getSize());
+
+        // Repository 호출
+        Page<TransactionJpaEntity> pagedEntities =
+            transactionJpaRepository.findByAccountIdWithPaging(accountId, pageable);
+
+        // Domain Page로 변환
+        List<Transaction> transactions = pagedEntities.getContent().stream()
+                .map(this::mapToDomain)
+                .collect(Collectors.toList());
+
+        return new PageResult<>(
+                transactions,
+                pagedEntities.getNumber(),
+                pagedEntities.getSize(),
+                pagedEntities.getTotalElements(),
+                pagedEntities.getTotalPages()
+        );
+    }
+
+    @Override
+    public PageResult<Transaction> findByAccountIdAndDateRangeWithPaging(Long accountId, LocalDateTime startDate, LocalDateTime endDate, PageQuery pageQuery) {
+        // Spring Data JPA Pageable로 변환
+        Pageable pageable = PageRequest.of(pageQuery.getPage(), pageQuery.getSize());
+
+        // Repository 호출
+        Page<TransactionJpaEntity> pagedEntities =
+                transactionJpaRepository.findByAccountIdAndDateRangeWithPaging(accountId, startDate, endDate, pageable);
+
+        // Domain Page로 변환
+        List<Transaction> transactions = pagedEntities.getContent().stream()
+                .map(this::mapToDomain)
+                .collect(Collectors.toList());
+
+        return new PageResult<>(
+                transactions,
+                pagedEntities.getNumber(),
+                pagedEntities.getSize(),
+                pagedEntities.getTotalElements(),
+                pagedEntities.getTotalPages()
+        );
     }
 
     private Transaction mapToDomain(TransactionJpaEntity entity) {

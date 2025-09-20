@@ -1,5 +1,6 @@
 package com.moneyTransfer.persistence.entity;
 
+import com.moneyTransfer.common.constant.BusinessConstants;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -23,10 +24,10 @@ public class DailyLimitJpaEntity {
     private LocalDate limitDate;
 
     @Column(name = "withdraw_used", nullable = false, precision = 15, scale = 2)
-    private BigDecimal withdrawUsed = BigDecimal.ZERO;
+    private BigDecimal withdrawUsed = BusinessConstants.ZERO_AMOUNT;
 
     @Column(name = "transfer_used", nullable = false, precision = 15, scale = 2)
-    private BigDecimal transferUsed = BigDecimal.ZERO;
+    private BigDecimal transferUsed = BusinessConstants.ZERO_AMOUNT;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
@@ -44,8 +45,8 @@ public class DailyLimitJpaEntity {
     public DailyLimitJpaEntity(AccountJpaEntity account, LocalDate limitDate) {
         this.account = account;
         this.limitDate = limitDate;
-        this.withdrawUsed = BigDecimal.ZERO;
-        this.transferUsed = BigDecimal.ZERO;
+        this.withdrawUsed = BusinessConstants.ZERO_AMOUNT;
+        this.transferUsed = BusinessConstants.ZERO_AMOUNT;
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
     }

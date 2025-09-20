@@ -1,6 +1,7 @@
 package com.moneyTransfer.domain.dailylimit;
 
 import com.moneyTransfer.common.constant.BusinessConstants;
+import com.moneyTransfer.common.constant.ErrorMessages;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -23,10 +24,10 @@ public class DailyLimit {
 
     public static DailyLimit createNew(Long accountId, LocalDate limitDate) {
         if (accountId == null) {
-            throw new IllegalArgumentException("계좌 ID는 필수입니다");
+            throw new IllegalArgumentException(ErrorMessages.ACCOUNT_ID_REQUIRED);
         }
         if (limitDate == null) {
-            throw new IllegalArgumentException("날짜는 필수입니다");
+            throw new IllegalArgumentException(ErrorMessages.LIMIT_DATE_REQUIRED);
         }
 
         DailyLimit dailyLimit = new DailyLimit();
@@ -41,7 +42,7 @@ public class DailyLimit {
 
     public DailyLimit addWithdrawUsed(BigDecimal amount) {
         if (amount == null || amount.compareTo(BusinessConstants.ZERO_AMOUNT) <= 0) {
-            throw new IllegalArgumentException("출금 금액은 0보다 커야 합니다");
+            throw new IllegalArgumentException(ErrorMessages.WITHDRAW_AMOUNT_MUST_BE_POSITIVE);
         }
 
         this.withdrawUsed = this.withdrawUsed.add(amount);
@@ -51,7 +52,7 @@ public class DailyLimit {
 
     public DailyLimit addTransferUsed(BigDecimal amount) {
         if (amount == null || amount.compareTo(BusinessConstants.ZERO_AMOUNT) <= 0) {
-            throw new IllegalArgumentException("이체 금액은 0보다 커야 합니다");
+            throw new IllegalArgumentException(ErrorMessages.TRANSFER_AMOUNT_MUST_BE_POSITIVE);
         }
 
         this.transferUsed = this.transferUsed.add(amount);

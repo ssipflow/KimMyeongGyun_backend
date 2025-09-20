@@ -73,47 +73,28 @@ class UserJpaRepositoryTest {
     }
 
     @Test
-    @DisplayName("BatchSize를 통한 계좌 Lazy Loading 테스트")
-    void lazyLoadingWithBatchSize() {
-        // given - 여러 User와 Account를 생성해서 BatchSize 효과 확인
+    @DisplayName("User와 Account 연관관계는 Account Repository Fetch Join을 통해 조회한다")
+    void userAccountRelationshipThroughRepository() {
+        // given - User 생성
         UserJpaEntity user1 = new UserJpaEntity("홍길동", "test1@domain.com", "1111111111111", "1111111111111");
-        UserJpaEntity user2 = new UserJpaEntity("김철수", "test2@domain.com", "2222222222222", "2222222222222");
         UserJpaEntity savedUser1 = userRepository.save(user1);
-        UserJpaEntity savedUser2 = userRepository.save(user2);
-        
-        // User1의 계좌들
+
+        // User의 계좌들 생성
         AccountJpaEntity account1 = new AccountJpaEntity(savedUser1, "001", "123456789", "123456789");
         AccountJpaEntity account2 = new AccountJpaEntity(savedUser1, "002", "987654321", "987654321");
         accountRepository.save(account1);
         accountRepository.save(account2);
-        
-        // User2의 계좌들
-        AccountJpaEntity account3 = new AccountJpaEntity(savedUser2, "001", "111111111", "111111111");
-        accountRepository.save(account3);
-        
-        // 영속성 컨텍스트 초기화 - 실제 DB에서 다시 조회하도록 강제
-        entityManager.flush(); // DB에 변경사항 반영
-        entityManager.clear(); // 영속성 컨텍스트 초기화
-        
-        // when - 여러 User 조회 (BatchSize 효과를 위해)
-        List<UserJpaEntity> allUsers = userRepository.findAll();
-        
-        // then - 각 User의 accounts에 접근 (BatchSize로 한번에 로딩되어야 함)
-        log.info("=== About to access accounts for all users (should trigger BatchSize loading) ===");
-        
-        for (UserJpaEntity user : allUsers) {
-            List<AccountJpaEntity> accounts = user.getAccounts();
-            log.info("User {} has {} accounts", user.getName(), accounts.size());
-            accounts.forEach(account ->
-                log.info("  - Account: bankCode={}, accountNo={}", account.getBankCode(), account.getAccountNo()));
-        }
-        
-        log.info("=== Finished accessing all accounts ===");
-        
-        // 검증
-        assertThat(allUsers).hasSize(2);
-        assertThat(allUsers.get(0).getAccounts()).hasSize(2);
-        assertThat(allUsers.get(1).getAccounts()).hasSize(1);
+
+        // when - AccountRepository를 통해 User의 계좌 조회
+        List<AccountJpaEntity> userAccounts = accountRepository.findByUserIdWithUser(savedUser1.getId());
+
+        // then - 검증
+        assertThat(userAccounts).hasSize(2);
+        userAccounts.forEach(account -> {
+            assertThat(account.getUser().getId()).isEqualTo(savedUser1.getId());
+            log.info("Account: bankCode={}, accountNo={}, user={}",
+                    account.getBankCode(), account.getAccountNo(), account.getUser().getName());
+        });
     }
 
     @Test
