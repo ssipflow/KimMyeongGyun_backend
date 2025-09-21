@@ -73,7 +73,7 @@ class TransactionUseCaseConcurrencyIntegrationTest {
         CreateAccountRequest sourceAccountRequest = new CreateAccountRequest(
             "홍길동",
             "source" + timestamp + "@example.com",
-            "1234567890" + (timestamp % 1000L),
+            String.format("12345678901%02d", timestamp % 100),
             testBankCode,
             testAccountNo
         );
@@ -81,7 +81,7 @@ class TransactionUseCaseConcurrencyIntegrationTest {
         CreateAccountRequest targetAccountRequest = new CreateAccountRequest(
             "김철수",
             "target" + timestamp + "@example.com",
-            "9876543210" + (timestamp % 1000L),
+            String.format("98765432101%02d", timestamp % 100),
             targetBankCode,
             targetAccountNo
         );

@@ -32,7 +32,7 @@ public class CreateAccountApiRequest {
     @NotBlank(message = "은행코드는 필수입니다")
     private String bankCode;
 
-    @Schema(description = "계좌 번호", example = "123-456-789")
+    @Schema(description = "계좌 번호", example = "123-456-7891")
     @NotBlank(message = "계좌번호는 필수입니다")
     @Pattern(regexp = "^\\d{10,14}$|^\\d{3,4}-\\d{3,4}-\\d{4,6}$", message = "유효한 계좌번호 형식이 아닙니다")
     private String accountNo;

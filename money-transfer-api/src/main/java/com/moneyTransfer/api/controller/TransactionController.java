@@ -20,6 +20,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.moneyTransfer.api.dto.ErrorResponse;
 
 import java.time.LocalDateTime;
 
@@ -50,9 +51,9 @@ public class TransactionController {
     @Operation(summary = "입금", description = "특정 계좌에 금액을 입금합니다.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "입금 성공"),
-            @ApiResponse(responseCode = "400", description = "잘못된 요청"),
-            @ApiResponse(responseCode = "404", description = "계좌를 찾을 수 없음"),
-            @ApiResponse(responseCode = "500", description = "서버 오류")
+            @ApiResponse(responseCode = "400", description = "잘못된 요청", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "404", description = "계좌를 찾을 수 없음", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "500", description = "서버 오류", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
     public ResponseEntity<TransactionApiResponse> deposit(@Valid @RequestBody DepositApiRequest apiRequest) {
         DepositRequest applicationRequest = transactionDtoMapper.toApplicationRequest(apiRequest);
@@ -66,9 +67,9 @@ public class TransactionController {
     @Operation(summary = "출금", description = "특정 계좌에서 금액을 출금합니다. 일일 한도 1,000,000원 적용.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "출금 성공"),
-            @ApiResponse(responseCode = "400", description = "잘못된 요청 (잔액 부족, 한도 초과 등)"),
-            @ApiResponse(responseCode = "404", description = "계좌를 찾을 수 없음"),
-            @ApiResponse(responseCode = "500", description = "서버 오류")
+            @ApiResponse(responseCode = "400", description = "잘못된 요청 (잔액 부족, 한도 초과 등)", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "404", description = "계좌를 찾을 수 없음", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "500", description = "서버 오류", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
     public ResponseEntity<TransactionApiResponse> withdraw(@Valid @RequestBody WithdrawApiRequest apiRequest) {
         WithdrawRequest applicationRequest = transactionDtoMapper.toApplicationRequest(apiRequest);
@@ -82,9 +83,9 @@ public class TransactionController {
     @Operation(summary = "이체", description = "계좌 간 금액을 이체합니다. 이체 금액의 1% 수수료, 일일 한도 3,000,000원 적용.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "이체 성공"),
-            @ApiResponse(responseCode = "400", description = "잘못된 요청 (잔액 부족, 한도 초과, 동일 계좌 이체 등)"),
-            @ApiResponse(responseCode = "404", description = "송금 또는 수취 계좌를 찾을 수 없음"),
-            @ApiResponse(responseCode = "500", description = "서버 오류")
+            @ApiResponse(responseCode = "400", description = "잘못된 요청 (잔액 부족, 한도 초과, 동일 계좌 이체 등)", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "404", description = "송금 또는 수취 계좌를 찾을 수 없음", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "500", description = "서버 오류", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
     public ResponseEntity<TransactionApiResponse> transfer(@Valid @RequestBody TransferApiRequest apiRequest) {
         TransferRequest applicationRequest = transactionDtoMapper.toApplicationRequest(apiRequest);
@@ -98,8 +99,8 @@ public class TransactionController {
     @Operation(summary = "거래내역 조회", description = "특정 계좌의 거래내역을 조회합니다. 최신순으로 정렬됩니다.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "조회 성공"),
-            @ApiResponse(responseCode = "404", description = "계좌를 찾을 수 없음"),
-            @ApiResponse(responseCode = "500", description = "서버 오류")
+            @ApiResponse(responseCode = "404", description = "계좌를 찾을 수 없음", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "500", description = "서버 오류", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
     public ResponseEntity<TransactionHistoryApiResponse> getTransactionHistory(
             @Parameter(description = "은행 코드", required = true, example = "001")

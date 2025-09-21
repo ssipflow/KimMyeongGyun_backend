@@ -21,7 +21,7 @@ public class TransferApiRequest {
     @NotBlank(message = "송금 계좌 은행 코드는 필수입니다")
     private String fromBankCode;
 
-    @Schema(description = "송금 계좌 번호", example = "123-456-789")
+    @Schema(description = "송금 계좌 번호", example = "123-456-7891")
     @NotBlank(message = "송금 계좌 번호는 필수입니다")
     private String fromAccountNo;
 
@@ -29,7 +29,7 @@ public class TransferApiRequest {
     @NotBlank(message = "수취 계좌 은행 코드는 필수입니다")
     private String toBankCode;
 
-    @Schema(description = "수취 계좌 번호", example = "987-654-321")
+    @Schema(description = "수취 계좌 번호", example = "987-654-3211")
     @NotBlank(message = "수취 계좌 번호는 필수입니다")
     private String toAccountNo;
 

@@ -23,6 +23,8 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
 
+import org.springframework.dao.DataIntegrityViolationException;
+
 @ExtendWith(MockitoExtension.class)
 @DisplayName("CreateAccountUseCase 테스트")
 class CreateAccountUseCaseTest {
@@ -50,20 +52,12 @@ class CreateAccountUseCaseTest {
             "1123456789"
         );
 
-        // Mock 객체를 직접 생성 (create 메서드 대신)
-        mockUser = new User();
-        mockUser.setId(1L);
-        mockUser.setName("홍길동");
-        mockUser.setEmail("test@example.com");
-        mockUser.setIdCardNo("1234567890123");
-        mockUser.setIdCardNoNorm("1234567890123");
+        // Mock 객체를 도메인 create 메서드로 생성
+        mockUser = User.create("홍길동", "test@example.com", "1234567890123");
+        mockUser.setId(1L);  // ID는 별도로 설정
 
-        mockAccount = new Account();
-        mockAccount.setId(1L);
-        mockAccount.setUserId(1L);
-        mockAccount.setBankCode("001");
-        mockAccount.setAccountNo("1123456789");
-        mockAccount.setAccountNoNorm("1123456789");
+        mockAccount = Account.create(1L, "001", "1123456789");
+        mockAccount.setId(1L);  // ID는 별도로 설정
     }
 
     @Test
@@ -71,9 +65,7 @@ class CreateAccountUseCaseTest {
     void createAccount_Success_NewUser() {
         // given
         given(userPort.findByIdCardNoNorm("1234567890123")).willReturn(Optional.empty());
-        given(userPort.existsByEmail("test@example.com")).willReturn(false);
         given(userPort.save(any(User.class))).willReturn(mockUser);
-        given(accountPort.existsByBankCodeAndAccountNoNorm("001", "1123456789")).willReturn(false);
         given(accountPort.save(any(Account.class))).willReturn(mockAccount);
 
         // when
@@ -93,7 +85,6 @@ class CreateAccountUseCaseTest {
     void createAccount_Success_ExistingUser() {
         // given
         given(userPort.findByIdCardNoNorm("1234567890123")).willReturn(Optional.of(mockUser));
-        given(accountPort.existsByBankCodeAndAccountNoNorm("001", "1123456789")).willReturn(false);
         given(accountPort.save(any(Account.class))).willReturn(mockAccount);
 
         // when
@@ -113,7 +104,7 @@ class CreateAccountUseCaseTest {
     void createAccount_DuplicateEmail_ThrowsException() {
         // given
         given(userPort.findByIdCardNoNorm("1234567890123")).willReturn(Optional.empty());
-        given(userPort.existsByEmail("test@example.com")).willReturn(true);
+        given(userPort.save(any(User.class))).willThrow(new DataIntegrityViolationException("UNIQUE constraint email"));
 
         // when & then
         assertThatThrownBy(() -> createAccountUseCase.execute(validRequest))
@@ -121,7 +112,7 @@ class CreateAccountUseCaseTest {
             .hasMessage("이미 존재하는 이메일입니다");
 
         then(userPort).should().findByIdCardNoNorm("1234567890123");
-        then(userPort).should(never()).save(any(User.class));
+        then(userPort).should().save(any(User.class));
         then(accountPort).should(never()).save(any(Account.class));
     }
 
@@ -172,9 +163,8 @@ class CreateAccountUseCaseTest {
     void createAccount_DuplicateAccountNo_ThrowsException() {
         // given
         given(userPort.findByIdCardNoNorm("1234567890123")).willReturn(Optional.empty());
-        given(userPort.existsByEmail("test@example.com")).willReturn(false);
         given(userPort.save(any(User.class))).willReturn(mockUser);
-        given(accountPort.existsByBankCodeAndAccountNoNorm("001", "1123456789")).willReturn(true);
+        given(accountPort.save(any(Account.class))).willThrow(new DataIntegrityViolationException("UNIQUE constraint account"));
 
         // when & then
         assertThatThrownBy(() -> createAccountUseCase.execute(validRequest))
@@ -183,7 +173,7 @@ class CreateAccountUseCaseTest {
 
         then(userPort).should().findByIdCardNoNorm("1234567890123");
         then(userPort).should().save(any(User.class));
-        then(accountPort).should(never()).save(any(Account.class));
+        then(accountPort).should().save(any(Account.class));
     }
 
     @Test
