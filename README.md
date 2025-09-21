@@ -2,6 +2,41 @@
 
 ![Java](https://img.shields.io/badge/Java-17-orange) ![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.2.0-brightgreen) ![MySQL](https://img.shields.io/badge/MySQL-8.0-blue) ![Docker](https://img.shields.io/badge/Docker-Compose-blue)
 
+## 목차
+
+- [개요](#개요)
+  - [핵심 특징](#핵심-특징)
+- [아키텍처](#아키텍처)
+  - [멀티모듈 Clean Architecture](#멀티모듈-clean-architecture)
+  - [의존성 규칙 (Clean Architecture)](#의존성-규칙-clean-architecture)
+- [기술 스택](#기술-스택)
+  - [Core Technologies](#core-technologies)
+  - [Build & Deployment](#build--deployment)
+  - [Testing & Quality](#testing--quality)
+- [데이터베이스 설계](#데이터베이스-설계)
+  - [데이터베이스 스키마](#데이터베이스-스키마)
+  - [주요 제약사항 및 특징](#주요-제약사항-및-특징)
+- [API 명세](#api-명세)
+  - [주요 엔드포인트](#주요-엔드포인트)
+  - [API 요청/응답 예시](#api-요청응답-예시)
+  - [API 문서화](#api-문서화)
+- [비즈니스 규칙](#비즈니스-규칙)
+  - [거래 한도](#거래-한도)
+  - [수수료 정책](#수수료-정책)
+  - [검증 규칙](#검증-규칙)
+- [동시성 제어](#동시성-제어)
+  - [다층 동시성 제어 전략](#다층-동시성-제어-전략)
+- [테스트 전략](#테스트-전략)
+  - [포괄적인 테스트 커버리지](#포괄적인-테스트-커버리지)
+  - [테스트 실행](#테스트-실행)
+- [빌드 및 실행](#빌드-및-실행)
+  - [사전 요구사항](#사전-요구사항)
+  - [Docker Compose 실행 (권장)](#2-docker-compose-실행-권장)
+  - [로컬 개발 환경 실행](#3-로컬-개발-환경-실행)
+  - [서비스 확인](#서비스-확인)
+
+---
+
 ## 개요
 
 - **Clean Architecture**와 **Domain-Driven Design** 패턴을 적용한 엔터프라이즈급 송금 서비스 백엔드 시스템
