@@ -40,7 +40,8 @@ public class ErrorMessages {
     public static final String MISSING_QUERY_PARAMETERS = "userId 또는 (bankCode와 accountNo) 파라미터가 필요합니다";
 
     // 동시성 제어 관련 에러 메시지
-    public static final String OPTIMISTIC_LOCK_CONFLICT = "다른 사용자가 계좌를 수정 중입니다. 잠시 후 다시 시도해주세요.";
+    public static final String OPTIMISTIC_LOCK_CONFLICT = "동시 접근으로 인한 충돌이 발생했습니다. 다시 시도해주세요";
+    public static final String DATA_INTEGRITY_CONFLICT = "동시 접근으로 인한 데이터 충돌이 발생했습니다. 다시 시도해주세요";
 
     // 이체 관련 에러 메시지
     public static final String CANNOT_TRANSFER_TO_SAME_ACCOUNT = "같은 계좌로는 이체할 수 없습니다";
@@ -53,6 +54,14 @@ public class ErrorMessages {
     public static final String LIMIT_DATE_REQUIRED = "날짜는 필수입니다";
     public static final String WITHDRAW_AMOUNT_MUST_BE_POSITIVE = "출금 금액은 0보다 커야 합니다";
     public static final String TRANSFER_AMOUNT_MUST_BE_POSITIVE = "이체 금액은 0보다 커야 합니다";
+
+    // HTTP 관련 에러 메시지
+    public static final String METHOD_NOT_ALLOWED = "지원하지 않는 HTTP 메서드입니다";
+    public static final String MEDIA_TYPE_NOT_SUPPORTED = "지원하지 않는 미디어 타입입니다";
+    public static final String RESOURCE_NOT_FOUND = "요청한 리소스를 찾을 수 없습니다";
+    public static final String INVALID_PARAMETER_TYPE = "잘못된 파라미터 형식입니다";
+    public static final String DATA_INTEGRITY_VIOLATION = "데이터 무결성 제약 조건 위반입니다";
+    public static final String INTERNAL_SERVER_ERROR = "서버 내부 오류가 발생했습니다";
 
     private ErrorMessages() {
     }

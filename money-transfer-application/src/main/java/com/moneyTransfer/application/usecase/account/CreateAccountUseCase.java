@@ -11,10 +11,14 @@ import com.moneyTransfer.domain.user.UserPort;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 @Transactional
 public class CreateAccountUseCase {
+
+    private static final Logger log = LoggerFactory.getLogger(CreateAccountUseCase.class);
 
     private final AccountPort accountPort;
     private final UserPort userPort;
@@ -40,6 +44,7 @@ public class CreateAccountUseCase {
     private User findOrCreateUser(CreateAccountRequest request) {
         // 정규화된 주민번호로 기존 User 찾기
         String idCardNoNorm = StringNormalizer.normalizeIdCardNo(request.getIdCardNo());
+        log.info("Searching for user with idCardNoNorm: {}", idCardNoNorm);
 
         return userPort.findByIdCardNoNorm(idCardNoNorm)
                 .map(existingUser -> {

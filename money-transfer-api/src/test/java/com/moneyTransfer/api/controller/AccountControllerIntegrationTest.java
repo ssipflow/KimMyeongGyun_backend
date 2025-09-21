@@ -17,7 +17,11 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.context.WebApplicationContext;
+
+import jakarta.persistence.EntityManager;
 
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -42,15 +46,27 @@ class AccountControllerIntegrationTest {
     @Autowired
     private UserJpaRepository userJpaRepository;
 
+    @Autowired
+    private EntityManager entityManager;
+
+    @Autowired
+    private PlatformTransactionManager transactionManager;
+
+    private TransactionTemplate transactionTemplate;
+
     private CreateAccountApiRequest validRequest;
 
     @BeforeEach
     void setUp() {
         this.mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
+        this.transactionTemplate = new TransactionTemplate(transactionManager);
+        long timestamp = System.currentTimeMillis();
+        String uniqueEmail = "test" + timestamp + "@example.com";
+        String uniqueIdCardNo = "1234567890" + String.format("%03d", timestamp % 1000L);
         validRequest = new CreateAccountApiRequest(
             "홍길동",
-            "test@example.com",
-            "1234567890123",
+            uniqueEmail,
+            uniqueIdCardNo,
             "001",
             "1123456789"
         );
@@ -81,8 +97,19 @@ class AccountControllerIntegrationTest {
     @DisplayName("기존 사용자로 계좌 생성이 성공한다")
     void createAccount_ExistingUser_Success() throws Exception {
         // given - 기존 사용자 생성
-        UserJpaEntity existingUser = new UserJpaEntity("홍길동", "test@example.com", "1234567890123", "1234567890123");
-        userJpaRepository.save(existingUser);
+        long timestamp = System.currentTimeMillis();
+        String uniqueEmail = "existing" + timestamp + "@example.com";
+        String uniqueIdCardNo = "9876543210" + String.format("%03d", timestamp % 1000L);
+        UserJpaEntity existingUser = transactionTemplate.execute(status -> {
+            UserJpaEntity newUser = new UserJpaEntity("홍길동", uniqueEmail, uniqueIdCardNo, uniqueIdCardNo);
+            return userJpaRepository.save(newUser);
+        });
+
+        assertThat(existingUser.getId()).isNotNull(); // Verify ID is populated
+
+        // validRequest의 이메일과 주민번호를 기존 사용자와 동일하게 설정
+        validRequest.setEmail(uniqueEmail);
+        validRequest.setIdCardNo(uniqueIdCardNo);
 
         // when & then
         mockMvc.perform(post("/accounts")
