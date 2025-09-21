@@ -33,12 +33,12 @@ public class AccountApiResponse {
     @Schema(description = "계좌 상태", example = "ACTIVATE")
     private String status;
 
-    @Schema(description = "계좌 생성 일시", example = "2024-01-01 10:00:00")
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @Schema(description = "계좌 생성 일시", example = "2025-09-20T10:00:00")
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime createdAt;
 
-    @Schema(description = "계좌 비활성화 일시", example = "2024-12-31 15:30:00")
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @Schema(description = "계좌 비활성화 일시", example = "2025-09-21T15:30:00")
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime deactivatedAt;
 
     public AccountApiResponse(Long id, Long userId, String bankCode, String accountNo,

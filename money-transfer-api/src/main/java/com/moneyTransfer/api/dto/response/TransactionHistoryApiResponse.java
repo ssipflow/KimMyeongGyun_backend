@@ -47,7 +47,7 @@ public class TransactionHistoryApiResponse {
         @Schema(description = "은행 코드", example = "001")
         private String bankCode;
 
-        @Schema(description = "계좌 번호", example = "123-456-789")
+        @Schema(description = "계좌 번호", example = "123-456-7891")
         private String accountNo;
 
         public AccountInfoApiResponse(String userName, String email, BigDecimal balance, String bankCode, String accountNo) {

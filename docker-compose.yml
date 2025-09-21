@@ -1,19 +1,29 @@
-version: '3.8'
-
 services:
   mysql:
     image: mysql:8.0
+    platform: linux/arm64/v8
     container_name: money-transfer-mysql
     environment:
       MYSQL_DATABASE: money_transfer
       MYSQL_ROOT_PASSWORD: root
       MYSQL_USER: moneyuser
       MYSQL_PASSWORD: moneypass
+      TZ: UTC
     ports:
-      - "3306:3306"
+      - "3307:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u$$MYSQL_USER", "-p$$MYSQL_PASSWORD"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 1G
 
   app:
     build:
@@ -21,16 +31,21 @@ services:
       dockerfile: Dockerfile
     container_name: money-transfer-app
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy # Wait for MySQL to be healthy
     ports:
-      - "8080:8080"
+      - "8081:8080"
     environment:
       SPRING_PROFILES_ACTIVE: docker
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/money_transfer?useSSL=false&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/money_transfer?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       SPRING_DATASOURCE_USERNAME: moneyuser
       SPRING_DATASOURCE_PASSWORD: moneypass
-    volumes:
-      - ./logs:/app/logs
+      TZ: UTC
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 2G
 
 volumes:
   mysql_data:

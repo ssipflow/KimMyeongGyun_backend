@@ -16,7 +16,7 @@ public class DeleteAccountApiRequest {
     @NotBlank(message = "은행 코드는 필수입니다")
     private String bankCode;
 
-    @Schema(description = "계좌 번호", example = "123-456-789")
+    @Schema(description = "계좌 번호", example = "123-456-7891")
     @NotBlank(message = "계좌 번호는 필수입니다")
     private String accountNo;
 
